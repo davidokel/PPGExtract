@@ -6,7 +6,7 @@ import math
 from data_methods import get_peaks, get_onsets
 from scipy.integrate import simps, trapz
 from scipy.stats import linregress
-
+from statistics import median
 def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
     peaks = get_peaks(data, fs)
 
@@ -20,6 +20,8 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
     sys_auc = []
     dia_auc = []
     auc_ratios = []
+
+    second_derivative_ratio = 0
 
     if len(peaks) != 0:
         peak_points = get_onsets(data, peaks)
@@ -99,7 +101,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 pre = peak_points[key]["Pre_Peak"]
 
                 plt.annotate(text = "", xy=(peak,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
-                plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='<->'))
+                plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[pre]), arrowprops=dict(arrowstyle='<->'))
 
             plt.subplot(4,1,4)
             plt.title("Decay times")
@@ -109,7 +111,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 post = peak_points[key]["Post_Peak"]
 
                 plt.annotate(text = "", xy=(peak,data[post]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
-                plt.annotate(text = "", xy=(post,data[post]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='<->'))
+                plt.annotate(text = "", xy=(post,data[post]), xytext=(peak,data[post]), arrowprops=dict(arrowstyle='<->'))
             
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
@@ -154,4 +156,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
             plt.show()
-    return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times), np.nanmedian(decay_times), np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratio), np.nanmedian(second_derivative_ratio)
+
+        return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times), np.nanmedian(decay_times), np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratios), second_derivative_ratio
+    else:
+        return np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN

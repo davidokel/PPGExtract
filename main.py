@@ -7,17 +7,31 @@ from upslopes_downslopes_rise_times_auc import get_upslopes_downslopes_rise_time
 import numpy as np
 from pulse_processing import *
 from data_methods import *
+from protocol import *
 
-#clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_iicp_data_cleaned_9.csv")
-#clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_DISTAL_810_nicp_data_cleaned_9.csv")
-#clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_PROXIMAL_810_nicp_data_cleaned_9.csv")
+clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_iicp_data_cleaned_9.csv")
+clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_DISTAL_810_nicp_data_cleaned_9.csv")
+clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_PROXIMAL_810_nicp_data_cleaned_9.csv")
 clean_810_subtracted = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_SUBTRACTED_810_nicp_data_cleaned_9.csv")
+
+"""fs = 100
+window_size_seconds = 5
+window_size_instances = fs*window_size_seconds
+
+clean_IICP.drop(['2','30','31'], axis=1)
+clean_810_distal.drop(['2','30','31'], axis=1)
+clean_810_proximal.drop(['2','30','31'], axis=1)
+clean_810_subtracted.drop(['2','30','31'], axis=1)
+
+run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)"""
+
 columns = clean_810_subtracted.columns
 
 window_size = (5*100)
 
-for i in range(20): 
+for i in range(40): 
     random_patient = rd.randint(0,len(columns)-1)
+    #random_patient = 8
     data = clean_810_subtracted[clean_810_subtracted.columns[random_patient]].dropna().to_numpy()
     data_flipped = np.flip(data)
 
@@ -33,6 +47,5 @@ for i in range(20):
         chunk_filtered = band_pass_filter(data_chunk, 2, 100, 0.5, 12)
         normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
 
-        get_peaks(normalised_chunk_filtered,100,0.4)
         amplitudes, half_widths = get_amplitudes_widths_prominences(normalised_chunk_filtered,fs=100,visualise=1)
-        get_upslopes_downslopes_rise_times_auc(normalised_chunk_filtered,fs=100,visualise=1)
+        upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(normalised_chunk_filtered,fs=100,visualise=1)

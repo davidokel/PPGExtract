@@ -8,7 +8,6 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0):
     peaks = get_peaks(data, fs)
 
     # LISTS FOR STORING RESULTS
-    amplitudes = []
     prominences = []
     half_widths = []
 
@@ -37,5 +36,7 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0):
             plt.hlines(*half_widths_res[1:], color="C2", label="half peak widths")
             plt.legend(loc="upper left")
             plt.show()
-    
-    return np.nanmedian(amplitudes), np.nanmedian(half_widths)
+
+        return np.nanmedian(prominences), np.nanmedian(half_widths)
+    else:
+        return np.NaN, np.NaN
