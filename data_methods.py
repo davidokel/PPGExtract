@@ -5,6 +5,45 @@ import scipy.signal as sp
 import math
 import matplotlib.pyplot as plt
 
+# Removing values above a certain threshold from dataframe based on the gold_standard
+def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0):
+    
+    # Iterate over columns of the gold_standard dataframe
+    for column in range(len(gold_standard.columns)):
+        gold_standard_data = np.array(gold_standard.iloc[:,column])
+        distal_data = np.array(distal.iloc[:,column])
+        proximal_data = np.array(proximal.iloc[:,column])
+        subtracted_data = np.array(subtracted.iloc[:,column])
+
+        upper_i = np.where(gold_standard_data > upper)[0]
+        gold_standard_data = np.delete(gold_standard_data,upper_i)
+        gold_standard.iloc[:,column] = pd.Series(gold_standard_data)
+
+        distal_data = np.delete(distal_data,upper_i)
+        distal.iloc[:,column] = pd.Series(distal_data)
+
+        proximal_data = np.delete(proximal_data,upper_i)
+        proximal.iloc[:,column] = pd.Series(proximal_data)
+
+        subtracted_data = np.delete(subtracted_data,upper_i)
+        subtracted.iloc[:,column] = pd.Series(subtracted_data)
+
+        lower_i = np.where(gold_standard_data < lower)[0]
+        gold_standard_data = np.delete(gold_standard_data,lower_i)
+        gold_standard.iloc[:,column] = pd.Series(gold_standard_data)
+
+        distal_data = np.delete(distal_data,lower_i)
+        distal.iloc[:,column] = pd.Series(distal_data)
+
+        proximal_data = np.delete(proximal_data,lower_i)
+        proximal.iloc[:,column] = pd.Series(proximal_data)
+
+        subtracted_data = np.delete(subtracted_data,lower_i)
+        subtracted.iloc[:,column] = pd.Series(subtracted_data)
+
+    print("Defined thresholds applied and values removed")
+    return gold_standard, distal, proximal, subtracted
+        
 #########################
 # LOADING DATA FROM CSV #
 #########################
@@ -25,7 +64,6 @@ def cosine_rule(a, b, c):
 
 def get_peaks(data,fs,prominence=0.4):
     data_list = data.tolist()
-
     peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3),prominence=prominence)
     half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
     prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()

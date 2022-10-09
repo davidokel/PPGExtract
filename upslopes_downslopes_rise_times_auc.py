@@ -157,6 +157,6 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             manager.window.showMaximized()
             plt.show()
 
-        return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times), np.nanmedian(decay_times), np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratios), second_derivative_ratio
+        return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times)/fs, np.nanmedian(decay_times)/fs, np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratios), second_derivative_ratio
     else:
         return np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN

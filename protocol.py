@@ -129,7 +129,8 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
                 second_derivative_ratios_sub.append(subtracted_second_derivative_ratio)
 
                 if len(iicp_chunk) > 0:
-                    iicp_value.append(iicp_chunk[len(iicp_chunk)-1])
+                    #iicp_value.append(iicp_chunk[len(iicp_chunk)-1])
+                    iicp_value.append(np.mean(iicp_chunk))
                 else:
                     iicp_value.append(np.NaN)
 
@@ -264,6 +265,6 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
     features_df_subtracted_all['Second Derivative Ratio'] = all_second_derivative_ratios_sub
     features_df_subtracted_all['IICP Data'] = all_iicp_data
 
-    features_df_distal_all.to_csv("Features/Distal/ALL_Patients_Features_Distal.csv")
-    features_df_proximal_all.to_csv("Features/Proximal/ALL_Patients_Features_Proximal.csv")
-    features_df_subtracted_all.to_csv("Features/Subtracted/ALL_Patients_Features_Subtracted.csv")
+    features_df_distal_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Distal.csv")
+    features_df_proximal_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Proximal.csv")
+    features_df_subtracted_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Subtracted.csv")

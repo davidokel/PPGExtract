@@ -37,6 +37,6 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0):
             plt.legend(loc="upper left")
             plt.show()
 
-        return np.nanmedian(prominences), np.nanmedian(half_widths)
+        return np.nanmedian(prominences), np.nanmedian(half_widths)/fs
     else:
         return np.NaN, np.NaN

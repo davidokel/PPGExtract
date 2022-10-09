@@ -14,18 +14,21 @@ clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Cod
 clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_PROXIMAL_810_nicp_data_cleaned_9.csv")
 clean_810_subtracted = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_SUBTRACTED_810_nicp_data_cleaned_9.csv")
 
-"""fs = 100
-window_size_seconds = 5
+clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted = remove_values(clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)
+
+fs = 100
+window_size_seconds = 60
 window_size_instances = fs*window_size_seconds
 
-clean_IICP.drop(['2','30','31'], axis=1)
-clean_810_distal.drop(['2','30','31'], axis=1)
-clean_810_proximal.drop(['2','30','31'], axis=1)
-clean_810_subtracted.drop(['2','30','31'], axis=1)
+# 2,30,31,11
+clean_IICP = clean_IICP.drop(columns = ['2','30','31','11'], axis=1)
+clean_810_distal = clean_810_distal.drop(columns = ['2','30','31','11'], axis=1)
+clean_810_proximal = clean_810_proximal.drop(columns = ['2','30','31','11'], axis=1)
+clean_810_subtracted = clean_810_subtracted.drop(columns = ['2','30','31','11'], axis=1)
 
-run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)"""
+run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)
 
-columns = clean_810_subtracted.columns
+"""columns = clean_810_subtracted.columns
 
 window_size = (5*100)
 
@@ -48,4 +51,4 @@ for i in range(40):
         normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
 
         amplitudes, half_widths = get_amplitudes_widths_prominences(normalised_chunk_filtered,fs=100,visualise=1)
-        upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(normalised_chunk_filtered,fs=100,visualise=1)
+        upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(normalised_chunk_filtered,fs=100,visualise=1)"""
