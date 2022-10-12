@@ -62,15 +62,30 @@ def cosine_rule(a, b, c):
 
     return angle_c
 
-def get_peaks(data,fs,prominence=0.4):
+#def get_peaks(data,fs,prominence=0.4):
+def get_peaks(data,fs):
+    # Convertion to list
     data_list = data.tolist()
-    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3),prominence=prominence)
+
+    #Old implementation
+    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3),prominence=prominence)
+
+    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3))
+    prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
+    height = np.percentile(data_list, 70)
+    #prominence_filtered = np.mean(prominences_all, 50)
+    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3), height=height)
+
     half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
     prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    peak_locs.tolist()
-    peaks = []
 
-    for peak in range(len(peak_locs)):
+    peaks = peak_locs.tolist()
+    #peak_locs.tolist()
+    #peaks = []
+    
+    #for peak in range(len(peak_locs)):
+        #peaks.append(math.floor(peak_locs[peak]))
+    """for peak in range(len(peak_locs)):
         # Calculating the search space either side of the peak:
         # The search space is 50% of the prominence of the peak
         # The prominence is multiplied by 100 for scaling purposes
@@ -81,7 +96,7 @@ def get_peaks(data,fs,prominence=0.4):
         data_end = int((peak_locs[peak]) + search_distance)
 
         # Handling if the search space is out of bounds
-        if data_start <0:
+        if data_start < 0:
             data_start = 0
         if data_end > len(data_list):
             data_end = len(data_list)-1
@@ -120,14 +135,14 @@ def get_peaks(data,fs,prominence=0.4):
         if len(data_list[peak_locs[peak]:data_end]) > 0:
             post_data = np.mean(data_list[peak_locs[peak]:data_end])
         else:
-            print("Error: No data in post peak range")
+            print("Error: No data in post peak range")"""
 
-        if ((data[peak_locs[peak]]-pre_data)/pre_data)*100 > 10 and ((data[peak_locs[peak]]-post_data)/post_data)*100 > 10 and int(half_widths_all[peak]) < int(prominences_all[peak]*100):
-            peaks.append(math.floor(peak_locs[peak]))
-
+        #if ((data[peak_locs[peak]]-pre_data)/pre_data)*100 > 10 and ((data[peak_locs[peak]]-post_data)/post_data)*100 > 10 and int(half_widths_all[peak]) < int(prominences_all[peak]*100):
+        #    peaks.append(math.floor(peak_locs[peak]))
+        #peaks.append(math.floor(peak_locs[peak]))
     return peaks
 
-def get_onsets(data,peak_locs):
+def get_onsets(data,peak_locs,fs=100):
     data_list = data.tolist()
     peak_points = {}
     
@@ -140,11 +155,15 @@ def get_onsets(data,peak_locs):
                 # Calculating the search space either side of the peak:
                 # The search space is 80% of the prominence of the peak
                 # The prominence is multiplied by 100 for scaling purposes
-                search_distance = abs(int((prominences_all[peak]*100)*0.8))
+                print(prominences_all[peak])
+                #search_distance = abs(int((prominences_all[peak]*100)))
+                search_distance = fs
 
                 # Applying the search space to the peak location
                 data_start = int((peak_locs[peak]) - search_distance)
                 data_end = int((peak_locs[peak]) + search_distance)
+
+                print(data_end - data_start)
                 
                 # Handling if the search space is out of bounds
                 if data_start <0:

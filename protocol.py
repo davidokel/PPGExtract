@@ -68,13 +68,13 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
                 print("Chunk start: " + str(chunk_start) + " Chunk end: " + str(chunk_end))
 
                 distal_chunk = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
-                distal_chunk = (distal_chunk - distal_chunk.min())/(distal_chunk.max() - distal_chunk.min())
+                #distal_chunk = (distal_chunk - distal_chunk.min())/(distal_chunk.max() - distal_chunk.min())
 
                 proximal_chunk = band_pass_filter(proximal_chunk, 2, 100, 0.5, 12)
-                proximal_chunk = (proximal_chunk - proximal_chunk.min())/(proximal_chunk.max() - proximal_chunk.min())
+                #proximal_chunk = (proximal_chunk - proximal_chunk.min())/(proximal_chunk.max() - proximal_chunk.min())
 
                 subtracted_chunk = band_pass_filter(subtracted_chunk, 2, 100, 0.5, 12)
-                subtracted_chunk = (subtracted_chunk - subtracted_chunk.min())/(subtracted_chunk.max() - subtracted_chunk.min())
+                #subtracted_chunk = (subtracted_chunk - subtracted_chunk.min())/(subtracted_chunk.max() - subtracted_chunk.min())
 
                 distal_amplitude, distal_half_width = get_amplitudes_widths_prominences(distal_chunk,fs=100,visualise=0)
                 proximal_amplitude, proximal_half_width = get_amplitudes_widths_prominences(proximal_chunk,fs=100,visualise=0)
@@ -222,9 +222,9 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
         features_df_subtracted['Second Derivative Ratio'] = second_derivative_ratios_sub
         features_df_subtracted['IICP Data'] = iicp_value
 
-        features_df_distal.to_csv("Features/Distal/Patient_"+patient+"_Features_Distal.csv")
-        features_df_proximal.to_csv("Features/Proximal/Patient_"+patient+"_Features_Proximal.csv")
-        features_df_subtracted.to_csv("Features/Subtracted/Patient_"+patient+"_Features_Subtracted.csv")
+        features_df_distal.to_csv("Features/Distal/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Distal.csv")
+        features_df_proximal.to_csv("Features/Proximal/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Proximal.csv")
+        features_df_subtracted.to_csv("Features/Subtracted/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Subtracted.csv")
 
     features_df_distal_all['Amplitude'] = all_amplitudes_dis
     features_df_distal_all['Half-peak width'] = all_half_widths_dis
@@ -265,6 +265,8 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
     features_df_subtracted_all['Second Derivative Ratio'] = all_second_derivative_ratios_sub
     features_df_subtracted_all['IICP Data'] = all_iicp_data
 
-    features_df_distal_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Distal.csv")
-    features_df_proximal_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Proximal.csv")
-    features_df_subtracted_all.to_csv("Features/Joint_Features/ALL_Patients_Features_Subtracted.csv")
+    features_df_distal_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Distal.csv")
+    features_df_proximal_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Proximal.csv")
+    features_df_subtracted_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Subtracted.csv")
+
+
