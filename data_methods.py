@@ -69,20 +69,42 @@ def get_peaks(data,fs):
 
     #Old implementation
     #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3),prominence=prominence)
-
-    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3))
-    prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    height = np.percentile(data_list, 70)
+    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5))
+    #prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
+    #height = np.percentile(data_list, 70)
     #prominence_filtered = np.mean(prominences_all, 50)
-    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3), height=height)
-
-    half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
-    prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-
-    peaks = peak_locs.tolist()
+    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5), height=height)
+    #half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
+    #prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
     #peak_locs.tolist()
     #peaks = []
+
+
+    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.7))
+    height = np.percentile(data_list, 70)
+    #prominences = (sp.peak_prominences(data, peak_locs)[0]).tolist()
+    #prominences = np.percentile(prominences, 40)
+    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5), height=height)
     
+    q3, q1 = np.percentile(data_list, [75, 25])
+    iqr = q3 - q1
+    
+    upper = q3 + (2*iqr)
+    lower = q1 - (2*iqr)
+
+    plt.plot(data_list)
+    plt.axhline(y=np.median(data_list), color='r', linestyle='-')
+    plt.axhline(y=upper, linestyle='--')
+    plt.axhline(y=lower, linestyle='--')
+    manager = plt.get_current_fig_manager()
+    manager.window.showMaximized()
+    plt.show()
+
+    peak_locs = [x for x in list(peak_locs) if data_list[x] <= upper]
+    peak_locs = [x for x in list(peak_locs) if data_list[x] >= lower]
+
+    peaks = peak_locs
+
     #for peak in range(len(peak_locs)):
         #peaks.append(math.floor(peak_locs[peak]))
     """for peak in range(len(peak_locs)):
@@ -155,15 +177,12 @@ def get_onsets(data,peak_locs,fs=100):
                 # Calculating the search space either side of the peak:
                 # The search space is 80% of the prominence of the peak
                 # The prominence is multiplied by 100 for scaling purposes
-                print(prominences_all[peak])
                 #search_distance = abs(int((prominences_all[peak]*100)))
-                search_distance = fs
+                search_distance = fs * 0.8
 
                 # Applying the search space to the peak location
                 data_start = int((peak_locs[peak]) - search_distance)
                 data_end = int((peak_locs[peak]) + search_distance)
-
-                print(data_end - data_start)
                 
                 # Handling if the search space is out of bounds
                 if data_start <0:
@@ -186,7 +205,8 @@ def get_onsets(data,peak_locs,fs=100):
                         difference = next - current
                         dfference_2 = int(difference/2)
                         # Set data end as the current peak + half the difference
-                        data_end = math.floor(peak_locs[peak] + dfference_2)
+                        #data_end = math.floor(peak_locs[peak] + dfference_2)
+                        data_end = peak_locs[peak+1]
                 # If first peak and more than one peak
                 if peak == 0 and len(peak_locs) > 1:
                     # Handling if end point is greater than next peak

@@ -9,10 +9,10 @@ from pulse_processing import *
 from data_methods import *
 from protocol import *
 
-clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_V2_line_threshold_0.0025_threshold_2_iicp_data_cleaned_9.csv")
-clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_V2_line_threshold_0.0025_threshold_2_DISTAL_810_nicp_data_cleaned_9.csv")
-clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_V2_line_threshold_0.0025_threshold_2_PROXIMAL_810_nicp_data_cleaned_9.csv")
-clean_810_subtracted = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_V2_line_threshold_0.0025_threshold_2_SUBTRACTED_810_nicp_data_cleaned_9.csv")
+clean_IICP = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_iicp_data_cleaned_9.csv")
+clean_810_distal = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_DISTAL_810_nicp_data_cleaned_9.csv")
+clean_810_proximal = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_PROXIMAL_810_nicp_data_cleaned_9.csv")
+clean_810_subtracted = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_SUBTRACTED_810_nicp_data_cleaned_9.csv")
 
 """clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_iicp_data_cleaned_9.csv")
 clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_DISTAL_810_nicp_data_cleaned_9.csv")
@@ -46,14 +46,14 @@ clean_810_subtracted = clean_810_subtracted.drop(columns = ['2','30','31','11'],
 
 #run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)
 
-columns = clean_810_proximal.columns
+columns = clean_810_distal.columns
 
 window_size = (60*100)
 
 for i in range(40): 
     random_patient = rd.randint(0,len(columns)-1)
     #random_patient = 8
-    data = clean_810_proximal[clean_810_proximal.columns[random_patient]].dropna().to_numpy()
+    data = clean_810_distal[clean_810_distal.columns[random_patient]].dropna().to_numpy()
     data_flipped = np.flip(data)
 
     if len(data_flipped) !=0:
@@ -63,6 +63,8 @@ for i in range(40):
 
         plt.title("Patient " + str(random_patient) + " Chunk " + str(random_chunk_start) + ":" + str(random_chunk_start+window_size))
         plt.plot(data_chunk)
+        manager = plt.get_current_fig_manager()
+        manager.window.showMaximized()
         plt.show()
         
         chunk_filtered = band_pass_filter(data_chunk, 2, 100, 0.5, 12)
