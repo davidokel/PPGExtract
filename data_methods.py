@@ -52,6 +52,17 @@ def load_csv(path):
     data.drop(data.columns[[0]],axis=1,inplace=True)
     return data
 
+def normalise_data(data,fs):
+    sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
+    ac = sp.sosfiltfilt(sos_ac, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
+    
+    sos_dc = sp.butter(3, (0.2/(fs/2)), btype='lowpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
+    dc = sp.sosfiltfilt(sos_dc, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
+    
+    normalised = ac/dc
+
+    return normalised
+
 def band_pass_filter(data, order, fs, low_cut, high_cut):
     sos = sp.butter(order, [low_cut, high_cut], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
     filtered_data = sp.sosfiltfilt(sos, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
@@ -77,14 +88,17 @@ def get_peaks(data,fs):
     #half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
     #prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
     #peak_locs.tolist()
-    #peaks = []
-
-
-    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.7))
+    
+    peaks = []
+    peak_locs,_ = sp.find_peaks(data)
     height = np.percentile(data_list, 70)
-    #prominences = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    #prominences = np.percentile(prominences, 40)
-    peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5), height=height)
+
+    data = (data - data.min())/(data.max() - data.min())
+    plt.plot(data)
+    plt.show()
+
+    peak_locs,_ = sp.find_peaks(data, height=height, prominence=0.3)
+    #peak_locs,_ = sp.find_peaks(data, height=height)
     
     q3, q1 = np.percentile(data_list, [75, 25])
     iqr = q3 - q1
@@ -92,26 +106,21 @@ def get_peaks(data,fs):
     upper = q3 + (2*iqr)
     lower = q1 - (2*iqr)
 
-    plt.plot(data_list)
-    plt.axhline(y=np.median(data_list), color='r', linestyle='-')
-    plt.axhline(y=upper, linestyle='--')
-    plt.axhline(y=lower, linestyle='--')
-    manager = plt.get_current_fig_manager()
-    manager.window.showMaximized()
-    plt.show()
-
     peak_locs = [x for x in list(peak_locs) if data_list[x] <= upper]
     peak_locs = [x for x in list(peak_locs) if data_list[x] >= lower]
 
-    peaks = peak_locs
+    prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
+
+    #peaks = peak_locs
 
     #for peak in range(len(peak_locs)):
         #peaks.append(math.floor(peak_locs[peak]))
-    """for peak in range(len(peak_locs)):
+    for peak in range(len(peak_locs)):
         # Calculating the search space either side of the peak:
         # The search space is 50% of the prominence of the peak
         # The prominence is multiplied by 100 for scaling purposes
-        search_distance = abs(int((prominences_all[peak]*100)/2))
+        #search_distance = abs(int((prominences_all[peak]*100)/2))
+        search_distance = fs * 0.8
 
         # Applying the search space to the peak location
         data_start = int((peak_locs[peak]) - search_distance)
@@ -157,10 +166,11 @@ def get_peaks(data,fs):
         if len(data_list[peak_locs[peak]:data_end]) > 0:
             post_data = np.mean(data_list[peak_locs[peak]:data_end])
         else:
-            print("Error: No data in post peak range")"""
+            print("Error: No data in post peak range")
 
-        #if ((data[peak_locs[peak]]-pre_data)/pre_data)*100 > 10 and ((data[peak_locs[peak]]-post_data)/post_data)*100 > 10 and int(half_widths_all[peak]) < int(prominences_all[peak]*100):
-        #    peaks.append(math.floor(peak_locs[peak]))
+        #if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 10 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 10 and int(half_widths_all[peak]) < (int(prominences_all[peak]*100)):
+        if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 10 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 10 and (prominences_all[peak] > (data_list[peak])):
+            peaks.append(math.floor(peak_locs[peak]))
         #peaks.append(math.floor(peak_locs[peak]))
     return peaks
 

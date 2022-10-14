@@ -8,8 +8,8 @@ from scipy.integrate import simps, trapz
 from scipy.stats import linregress
 from statistics import median
 def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
-    #data = (data - data.min())/(data.max() - data.min())
     peaks = get_peaks(data, fs)
+    data = (data - data.min())/(data.max() - data.min())
 
     rise_times = []
     decay_times = []
