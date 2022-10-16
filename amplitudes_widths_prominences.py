@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-from data_methods import get_peaks, get_onsets
-from pulse_processing import *
+from data_methods import *
 
 def get_amplitudes_widths_prominences(data,fs,visualise=0):
     peaks = get_peaks(data, fs)

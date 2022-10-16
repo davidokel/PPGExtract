@@ -68,13 +68,13 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
                 print("Chunk start: " + str(chunk_start) + " Chunk end: " + str(chunk_end))
 
                 distal_chunk = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
-                #distal_chunk = (distal_chunk - distal_chunk.min())/(distal_chunk.max() - distal_chunk.min())
+                distal_chunk = normalise_data(distal_chunk, fs=100)
 
                 proximal_chunk = band_pass_filter(proximal_chunk, 2, 100, 0.5, 12)
-                #proximal_chunk = (proximal_chunk - proximal_chunk.min())/(proximal_chunk.max() - proximal_chunk.min())
+                proximal_chunk = normalise_data(proximal_chunk, fs=100)
 
                 subtracted_chunk = band_pass_filter(subtracted_chunk, 2, 100, 0.5, 12)
-                #subtracted_chunk = (subtracted_chunk - subtracted_chunk.min())/(subtracted_chunk.max() - subtracted_chunk.min())
+                subtracted_chunk = normalise_data(subtracted_chunk, fs=100)
 
                 distal_amplitude, distal_half_width = get_amplitudes_widths_prominences(distal_chunk,fs=100,visualise=0)
                 proximal_amplitude, proximal_half_width = get_amplitudes_widths_prominences(proximal_chunk,fs=100,visualise=0)

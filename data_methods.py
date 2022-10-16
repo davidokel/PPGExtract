@@ -4,6 +4,36 @@ import numpy as np
 import scipy.signal as sp
 import math
 import matplotlib.pyplot as plt
+import random as rd
+from upslopes_downslopes_rise_times_auc import *
+from amplitudes_widths_prominences import *
+
+def run_test(data, window_seconds, fs, number_of_examples):
+    columns = data.columns
+
+    window_size = (window_seconds*fs)
+
+    for i in range(number_of_examples): 
+        random_patient = rd.randint(0,len(columns)-1)
+
+        data = data[data.columns[random_patient]].dropna().to_numpy()
+        data_flipped = np.flip(data)
+
+        if len(data_flipped) !=0:
+            random_chunk_start = rd.randint(0,len(data_flipped)-1)
+            random_chunk_end = random_chunk_start + window_size
+            data_chunk = data_flipped[random_chunk_start:random_chunk_end]
+
+            plt.title("Patient " + str(random_patient) + " Chunk " + str(random_chunk_start) + ":" + str(random_chunk_start+window_size))
+            plt.plot(data_chunk)
+            manager = plt.get_current_fig_manager()
+            manager.window.showMaximized()
+            plt.show()
+            
+            chunk_filtered = normalise_data(data_chunk, fs)
+
+            amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1)
+            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1)
 
 # Removing values above a certain threshold from dataframe based on the gold_standard
 def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0):
@@ -73,54 +103,143 @@ def cosine_rule(a, b, c):
 
     return angle_c
 
-#def get_peaks(data,fs,prominence=0.4):
+def data_scaler(data):
+    min_data = min(data)
+    if min_data < 0:
+        scaling_factor = abs(min_data)
+    else:
+        scaling_factor = np.diff([0, min_data])[0]
+
+    data = data + scaling_factor
+    return data
+
+def get_subtracted_data(distal, proximal):
+    # Use the normalise_data function to normalise clean_810_distal and clean_810_proximal
+    subtracted_dataframe = pd.DataFrame()
+    for column in distal.columns:
+        clean_810_distal_normalised = list(normalise_data(distal[column], fs=100))
+        clean_810_proximal_normalised = list(normalise_data(proximal[column], fs=100))
+
+        if len(clean_810_distal_normalised) == len(clean_810_proximal_normalised):
+            for i in range(len(clean_810_distal_normalised)):
+                subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
+            print(subtracted_dataframe[column])
+        else:
+            # Check which dataframe is the longest and use that as the length of the loop
+            if len(clean_810_distal_normalised) > len(clean_810_proximal_normalised):
+                for i in range(len(clean_810_distal_normalised)):
+                    subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
+                print(subtracted_dataframe[column])
+            else:
+                for i in range(len(clean_810_proximal_normalised)):
+                    subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
+                print(subtracted_dataframe[column])
+
+    subtracted_dataframe.to_csv("IMPROVED_SUBTRACTED_810_nicp_data_cleaned_9.csv")
+    return subtracted_dataframe
+
+def find_anomalies(data, upper, lower):
+    anomalies = {} # Defining a dictionary to store the detected anomalies of the signal
+    anomly_segment_trigger = 1
+    anomaly_count = 1
+
+    for i in range(len(data)):
+        # If anomly_segment_trigger = 1 then the code is "searching" for a new anomaly
+        # If the anomly_segment_trigger = 0 then the code is "searching" for a local maximum or minimum anomaly
+        # Check to if there have not been any anomalies detected yet
+        if len(anomalies) == 0:
+            # If the current index of the envelope difference is greater than or equal to the upper threshold
+            # and less than or equal to the lower threshold then add the current index to the list of anomalies
+            if data[i] >= upper or data[i] <= lower:
+                anomalies[anomaly_count] = i
+                anomly_segment_trigger = 0
+        # Check to see if current value at index i is greater than or equal to the upper threshold or lower than or equal to the lower threshold
+        elif data[i] >= upper or data[i] <= lower:
+            # If the code is "searching" for a local maximum or minimum anomaly
+            # check if the current value is greater than or less than the existing anomaly
+            # if it is greater than the existing above the upper threshold anomaly then replace it with the current index
+            # if it is less than the existing below the lower threshold anomaly then replace it with the current index
+            if anomly_segment_trigger == 0:
+                if data[anomalies[anomaly_count]] >= upper and data[i] > data[anomalies[anomaly_count]]:
+                    anomalies[anomaly_count] = i
+                if data[anomalies[anomaly_count]] <= lower and data[i] < data[anomalies[anomaly_count]]:
+                    anomalies[anomaly_count] = i
+            # If the code is "searching" for a new anomaly
+            # add the anomaly to the anomalies dictionary
+            elif anomly_segment_trigger == 1:
+                anomaly_count += 1
+                anomalies[anomaly_count] = i
+                anomly_segment_trigger = 0
+        # If the value at the current index is less than the upper threshold and greater than the lower threshold
+        # then set the anomly_segment_trigger to 1
+        elif data[i] < upper and data[i] > lower:
+            anomly_segment_trigger = 1
+        
+    return anomalies
+
 def get_peaks(data,fs):
     # Convertion to list
     data_list = data.tolist()
-
-    #Old implementation
-    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.3),prominence=prominence)
-    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5))
-    #prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    #height = np.percentile(data_list, 70)
-    #prominence_filtered = np.mean(prominences_all, 50)
-    #peak_locs,_ = sp.find_peaks(data,distance=(fs*0.5), height=height)
-    #half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
-    #prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    #peak_locs.tolist()
-    
     peaks = []
-    peak_locs,_ = sp.find_peaks(data)
-    height = np.percentile(data_list, 70)
 
     data = (data - data.min())/(data.max() - data.min())
-    plt.plot(data)
-    plt.show()
+    height = np.percentile(data, 70)
+    peak_locs,_ = sp.find_peaks(data, height=height, distance=fs*0.2)
 
-    peak_locs,_ = sp.find_peaks(data, height=height, prominence=0.3)
-    #peak_locs,_ = sp.find_peaks(data, height=height)
-    
-    q3, q1 = np.percentile(data_list, [75, 25])
+    q3, q1 = np.percentile(data, [75, 25])
     iqr = q3 - q1
     
     upper = q3 + (2*iqr)
     lower = q1 - (2*iqr)
 
-    peak_locs = [x for x in list(peak_locs) if data_list[x] <= upper]
-    peak_locs = [x for x in list(peak_locs) if data_list[x] >= lower]
+    peak_locs = peak_locs.tolist()
 
+    anomalous_values = find_anomalies(data, upper, lower)
+    
+    removed = []
+    for key, value in anomalous_values.items():
+        if value in peak_locs:
+            closest_peak_index = peak_locs.index(value)
+        else:
+            absolute_differences = lambda list_value : abs(list_value - value)
+            closest_value = min(peak_locs, key=absolute_differences)
+            closest_peak_index = peak_locs.index(closest_value)
+
+        if closest_peak_index != 0 and closest_peak_index != len(peak_locs)-1:
+            removed.append(peak_locs[closest_peak_index-1])
+            removed.append(peak_locs[closest_peak_index])
+            removed.append(peak_locs[closest_peak_index+1])
+
+        elif closest_peak_index == 0:
+            removed.append(peak_locs[closest_peak_index])
+            removed.append(peak_locs[closest_peak_index+1])
+
+        elif closest_peak_index == len(peak_locs)-1:
+            removed.append(peak_locs[closest_peak_index-1])
+            removed.append(peak_locs[closest_peak_index])
+    
+    peak_locs = [i for i in peak_locs if i not in removed]
+            
     prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
+    half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
 
-    #peaks = peak_locs
-
-    #for peak in range(len(peak_locs)):
-        #peaks.append(math.floor(peak_locs[peak]))
-    for peak in range(len(peak_locs)):
+    """if len(anomalous_values) != 0:
+        plt.plot(data)
+        plt.plot(peak_locs, data[peak_locs], "x")
+        plt.axhline(y=upper, color='r', linestyle='-')
+        plt.axhline(y=lower, color='r', linestyle='-')
+        # Iterating and plotting anomalous_values as dots
+        for value in removed:
+            plt.plot(value, data[value], "o")
+        manager = plt.get_current_fig_manager()
+        manager.window.showMaximized()
+        plt.show()"""
+    
+    """for peak in range(len(peak_locs)):
         # Calculating the search space either side of the peak:
         # The search space is 50% of the prominence of the peak
         # The prominence is multiplied by 100 for scaling purposes
-        #search_distance = abs(int((prominences_all[peak]*100)/2))
-        search_distance = fs * 0.8
+        search_distance = abs(int((prominences_all[peak]*100)*0.80))
 
         # Applying the search space to the peak location
         data_start = int((peak_locs[peak]) - search_distance)
@@ -168,13 +287,15 @@ def get_peaks(data,fs):
         else:
             print("Error: No data in post peak range")
 
-        #if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 10 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 10 and int(half_widths_all[peak]) < (int(prominences_all[peak]*100)):
-        if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 10 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 10 and (prominences_all[peak] > (data_list[peak])):
+        if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 5 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 5 and"""
+    for peak in range(len(peak_locs)):
+        if (prominences_all[peak]*100 > (half_widths_all[peak])):
             peaks.append(math.floor(peak_locs[peak]))
-        #peaks.append(math.floor(peak_locs[peak]))
+
     return peaks
 
 def get_onsets(data,peak_locs,fs=100):
+    data = (data - data.min())/(data.max() - data.min())
     data_list = data.tolist()
     peak_points = {}
     
@@ -187,8 +308,7 @@ def get_onsets(data,peak_locs,fs=100):
                 # Calculating the search space either side of the peak:
                 # The search space is 80% of the prominence of the peak
                 # The prominence is multiplied by 100 for scaling purposes
-                #search_distance = abs(int((prominences_all[peak]*100)))
-                search_distance = fs * 0.8
+                search_distance = abs(int((prominences_all[peak]*100)*0.80))
 
                 # Applying the search space to the peak location
                 data_start = int((peak_locs[peak]) - search_distance)

@@ -1,15 +1,12 @@
-from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.signal as sp
-import math
-from data_methods import get_peaks, get_onsets
-from scipy.integrate import simps, trapz
+from data_methods import *
+from scipy.integrate import trapz
 from scipy.stats import linregress
-from statistics import median
+
 def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
     peaks = get_peaks(data, fs)
-    data = (data - data.min())/(data.max() - data.min())
+    data = data_scaler(data)
 
     rise_times = []
     decay_times = []
