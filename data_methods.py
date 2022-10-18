@@ -7,16 +7,17 @@ import matplotlib.pyplot as plt
 import random as rd
 from upslopes_downslopes_rise_times_auc import *
 from amplitudes_widths_prominences import *
+import scipy.stats as stats
 
-def run_test(data, window_seconds, fs, number_of_examples):
-    columns = data.columns
+def run_test(data_df, window_seconds, fs, number_of_examples):
+    columns = data_df.columns
 
     window_size = (window_seconds*fs)
 
     for i in range(number_of_examples): 
         random_patient = rd.randint(0,len(columns)-1)
 
-        data = data[data.columns[random_patient]].dropna().to_numpy()
+        data = data_df[data_df.columns[random_patient]].dropna().to_numpy()
         data_flipped = np.flip(data)
 
         if len(data_flipped) !=0:
@@ -113,31 +114,6 @@ def data_scaler(data):
     data = data + scaling_factor
     return data
 
-def get_subtracted_data(distal, proximal):
-    # Use the normalise_data function to normalise clean_810_distal and clean_810_proximal
-    subtracted_dataframe = pd.DataFrame()
-    for column in distal.columns:
-        clean_810_distal_normalised = list(normalise_data(distal[column], fs=100))
-        clean_810_proximal_normalised = list(normalise_data(proximal[column], fs=100))
-
-        if len(clean_810_distal_normalised) == len(clean_810_proximal_normalised):
-            for i in range(len(clean_810_distal_normalised)):
-                subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
-            print(subtracted_dataframe[column])
-        else:
-            # Check which dataframe is the longest and use that as the length of the loop
-            if len(clean_810_distal_normalised) > len(clean_810_proximal_normalised):
-                for i in range(len(clean_810_distal_normalised)):
-                    subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
-                print(subtracted_dataframe[column])
-            else:
-                for i in range(len(clean_810_proximal_normalised)):
-                    subtracted_dataframe.at[i, column] = clean_810_distal_normalised[i] - clean_810_proximal_normalised[i]
-                print(subtracted_dataframe[column])
-
-    subtracted_dataframe.to_csv("IMPROVED_SUBTRACTED_810_nicp_data_cleaned_9.csv")
-    return subtracted_dataframe
-
 def find_anomalies(data, upper, lower):
     anomalies = {} # Defining a dictionary to store the detected anomalies of the signal
     anomly_segment_trigger = 1
@@ -179,12 +155,12 @@ def find_anomalies(data, upper, lower):
 
 def get_peaks(data,fs):
     # Convertion to list
-    data_list = data.tolist()
     peaks = []
 
     data = (data - data.min())/(data.max() - data.min())
+
     height = np.percentile(data, 70)
-    peak_locs,_ = sp.find_peaks(data, height=height, distance=fs*0.2)
+    peak_locs,_ = sp.find_peaks(data, height=height, distance=fs*0.4, prominence=0.1)
 
     q3, q1 = np.percentile(data, [75, 25])
     iqr = q3 - q1
@@ -205,23 +181,36 @@ def get_peaks(data,fs):
             closest_value = min(peak_locs, key=absolute_differences)
             closest_peak_index = peak_locs.index(closest_value)
 
+        # IF PEAK IS NOT THE FRIST OR LAST PEAK
         if closest_peak_index != 0 and closest_peak_index != len(peak_locs)-1:
             removed.append(peak_locs[closest_peak_index-1])
             removed.append(peak_locs[closest_peak_index])
             removed.append(peak_locs[closest_peak_index+1])
 
-        elif closest_peak_index == 0:
+        # IF THE PEAK IS THE FIRST PEAK BUT NOT THE LAST PEAK
+        elif closest_peak_index == 0 and closest_peak_index != len(peak_locs)-1:
             removed.append(peak_locs[closest_peak_index])
             removed.append(peak_locs[closest_peak_index+1])
-
-        elif closest_peak_index == len(peak_locs)-1:
+        
+        # IF THE PEAK IS THE LAST PEAK BUT NOT THE FIRST PEAK
+        elif closest_peak_index == len(peak_locs)-1 and closest_peak_index != len(peak_locs)-1:
             removed.append(peak_locs[closest_peak_index-1])
             removed.append(peak_locs[closest_peak_index])
-    
+        
+        # IF THE PEAK IS THE FIRST AND LAST PEAK
+        elif closest_peak_index == 0 and closest_peak_index == len(peak_locs)-1:
+            removed.append(peak_locs[closest_peak_index])
+
     peak_locs = [i for i in peak_locs if i not in removed]
-            
+
+    if len(peak_locs) > 2:
+        del peak_locs[0]
+        del peak_locs[-1]
+
+    #peaks = peak_locs
+
     prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
-    half_widths_all = sp.peak_widths(data, peak_locs, rel_height=0.5)[0].tolist()
+    widths_all = sp.peak_widths(data, peak_locs)[0].tolist()
 
     """if len(anomalous_values) != 0:
         plt.plot(data)
@@ -235,11 +224,11 @@ def get_peaks(data,fs):
         manager.window.showMaximized()
         plt.show()"""
     
-    """for peak in range(len(peak_locs)):
+    for peak in range(len(peak_locs)):
         # Calculating the search space either side of the peak:
         # The search space is 50% of the prominence of the peak
         # The prominence is multiplied by 100 for scaling purposes
-        search_distance = abs(int((prominences_all[peak]*100)*0.80))
+        search_distance = abs(int((widths_all[peak])))
 
         # Applying the search space to the peak location
         data_start = int((peak_locs[peak]) - search_distance)
@@ -248,8 +237,8 @@ def get_peaks(data,fs):
         # Handling if the search space is out of bounds
         if data_start < 0:
             data_start = 0
-        if data_end > len(data_list):
-            data_end = len(data_list)-1
+        if data_end > len(data):
+            data_end = len(data)-1
 
         if peak != 0 and peak != len(peak_locs)-1:
             # Handling if start point is less than pervious peak
@@ -277,21 +266,19 @@ def get_peaks(data,fs):
                 # Set data end as the current peak + half the difference
                 data_end = math.floor(peak_locs[peak] + dfference_2)
         
-        if len(data_list[data_start:peak_locs[peak]]) > 0:
-            pre_data = np.mean(data_list[data_start:peak_locs[peak]])
+        if len(data[data_start:peak_locs[peak]]) > 0:
+            pre_data = np.mean(data[data_start:peak_locs[peak]])
         else:
             print("Error: No data in pre peak range")
         
-        if len(data_list[peak_locs[peak]:data_end]) > 0:
-            post_data = np.mean(data_list[peak_locs[peak]:data_end])
+        if len(data[peak_locs[peak]:data_end]) > 0:
+            post_data = np.mean(data[peak_locs[peak]:data_end])
         else:
             print("Error: No data in post peak range")
 
-        if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 5 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 5 and"""
-    for peak in range(len(peak_locs)):
-        if (prominences_all[peak]*100 > (half_widths_all[peak])):
+        if (abs((data[peak_locs[peak]]-pre_data)/pre_data)*100) > 5 and (abs((data[peak_locs[peak]]-post_data)/post_data)*100) > 5:
             peaks.append(math.floor(peak_locs[peak]))
-
+    
     return peaks
 
 def get_onsets(data,peak_locs,fs=100):
@@ -302,13 +289,15 @@ def get_onsets(data,peak_locs,fs=100):
     if len(peak_locs) > 0:
         # If peaks exist calculate all prominences for the exisitng peaks
         prominences_all = (sp.peak_prominences(data_list, peak_locs)[0]).tolist()
+        widths_all = sp.peak_widths(data, peak_locs)[0].tolist()
 
         # Iterating through all the peaks
-        for peak in range(len(peak_locs)):
+        for peak in range(len(peak_locs)-1):
                 # Calculating the search space either side of the peak:
                 # The search space is 80% of the prominence of the peak
                 # The prominence is multiplied by 100 for scaling purposes
-                search_distance = abs(int((prominences_all[peak]*100)*0.80))
+                #search_distance = abs(int((prominences_all[peak]*100)*2))
+                search_distance = abs(int((widths_all[peak]))*2)
 
                 # Applying the search space to the peak location
                 data_start = int((peak_locs[peak]) - search_distance)
@@ -324,9 +313,10 @@ def get_onsets(data,peak_locs,fs=100):
                 if peak != 0 and peak != len(peak_locs)-1:
                     keys = list(peak_points.keys())
                     # Handling if start point is less than previous post peak point
-                    if data_start < peak_points[keys[-1]]["Post_Peak"]:
+                    if data_start < peak_points["Peak_"+str(peak-1)]["Post_Peak"]:
+                        #"Peak_"+str(peak)
                         # Set data start as the previous post peak point
-                        data_start = peak_points[keys[-1]]["Post_Peak"]
+                        data_start = peak_points["Peak_"+str(peak-1)]["Post_Peak"]
                     # Handling if end point is greater than next peak
                     if data_end >= peak_locs[peak+1]:
                         # Calculating difference (number of instances between current peak and next peak)
@@ -348,7 +338,7 @@ def get_onsets(data,peak_locs,fs=100):
                         dfference_2 = int(difference/2)
                         # Set data end as the current peak + half the difference
                         data_end = math.floor(peak_locs[peak] + dfference_2)
-            
+
                 if len(data_list[data_start:peak_locs[peak]]) > 0:
                     min_pre = math.floor(data_list.index(min(data_list[data_start:peak_locs[peak]])))
                 else:

@@ -10,26 +10,17 @@ from data_methods import *
 from protocol import *
 import scipy.signal as sp
 
-#clean_IICP = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_iicp_data_cleaned_9.csv")
-#clean_810_distal = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_DISTAL_810_nicp_data_cleaned_9.csv")
-#clean_810_proximal = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_PROXIMAL_810_nicp_data_cleaned_9.csv")
-#clean_810_subtracted = load_csv("Data_Test/IMPROVED_V2_line_threshold_0.0025_threshold_2_SUBTRACTED_810_nicp_data_cleaned_9.csv")
+clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Loaded_data/Cleaned_data_V4/IMPROVED_V4_line_threshold_0.0025_threshold_1.5_iicp_data_cleaned_9.csv")
+clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Loaded_data/Cleaned_data_V4/IMPROVED_V4_line_threshold_0.0025_threshold_1.5_DISTAL_810_nicp_data_cleaned_9.csv")
+clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Loaded_data/Cleaned_data_V4/IMPROVED_V4_line_threshold_0.0025_threshold_1.5_PROXIMAL_810_nicp_data_cleaned_9.csv")
+clean_810_subtracted = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Loaded_data/Cleaned_data_V4/IMPROVED_V4_line_threshold_0.0025_threshold_1.5_SUBTRACTED_810_nicp_data_cleaned_9.csv")
 
-clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_iicp_data_cleaned_9.csv")
-clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_DISTAL_810_nicp_data_cleaned_9.csv")
-clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_PROXIMAL_810_nicp_data_cleaned_9.csv")
-clean_810_subtracted = get_subtracted_data(clean_810_distal,clean_810_proximal)
+#clean_IICP = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_iicp_data_cleaned_9.csv")
+#clean_810_distal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_DISTAL_810_nicp_data_cleaned_9.csv")
+#clean_810_proximal = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_PROXIMAL_810_nicp_data_cleaned_9.csv")
 #clean_810_subtracted = load_csv("C:/Users/k20113376/Documents/Clinical Trial/NEW_Code_Data/Data/Data_Cleaned/IMPROVED_SUBTRACTED_810_nicp_data_cleaned_9.csv")
 
-print(clean_810_distal.head())
-print(clean_810_proximal.head())
-print(clean_810_subtracted.head())
-
-print(len(clean_810_distal))
-print(len(clean_810_proximal))
-print(len(clean_810_subtracted))
-
-run_test(clean_810_subtracted, 60, 100, 10)
+#run_test(clean_810_subtracted, 60, 100, 50)
 
 clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted = remove_values(clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)
 
@@ -43,4 +34,4 @@ clean_810_distal = clean_810_distal.drop(columns = ['2','30','31','11'], axis=1)
 clean_810_proximal = clean_810_proximal.drop(columns = ['2','30','31','11'], axis=1)
 clean_810_subtracted = clean_810_subtracted.drop(columns = ['2','30','31','11'], axis=1)
 
-#run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted)
+run_protocol(window_size_instances, clean_IICP, clean_810_distal, clean_810_proximal, clean_810_subtracted, "WIDTHS__Updated_extraction_V4_CLEANED")

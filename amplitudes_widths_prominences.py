@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-from data_methods import *
+import data_methods
 
 def get_amplitudes_widths_prominences(data,fs,visualise=0):
-    peaks = get_peaks(data, fs)
+    peaks = data_methods.get_peaks(data, fs)
 
     # LISTS FOR STORING RESULTS
     prominences = []

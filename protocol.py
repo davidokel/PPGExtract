@@ -4,7 +4,7 @@ from upslopes_downslopes_rise_times_auc import *
 from data_methods import *
 import math
 
-def run_protocol(window_size, iicp, distal, proximal, subtracted):
+def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     columns = iicp.columns
 
     features_list = ['Amplitude', 'Half-peak width', 'Upslope', 'Downslope', 'Rise time', 'Decay time', 'AUC', 'Sys AUC', 'Dia AUC', 'AUC Ratio', 'Second Derivative Ratio', 'IICP Data']
@@ -222,9 +222,9 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
         features_df_subtracted['Second Derivative Ratio'] = second_derivative_ratios_sub
         features_df_subtracted['IICP Data'] = iicp_value
 
-        features_df_distal.to_csv("Features/Distal/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Distal.csv")
-        features_df_proximal.to_csv("Features/Proximal/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Proximal.csv")
-        features_df_subtracted.to_csv("Features/Subtracted/IMPROVED_V2_line_threshold_0.0025_threshold_2_Patient_"+patient+"_Features_Subtracted.csv")
+        features_df_distal.to_csv("Features/Distal/" + save_name + "_" +patient+"_Features_Distal.csv")
+        features_df_proximal.to_csv("Features/Proximal/" + save_name + "_" +patient+"_Features_Proximal.csv")
+        features_df_subtracted.to_csv("Features/Subtracted/" + save_name + "_" +patient+"_Features_Subtracted.csv")
 
     features_df_distal_all['Amplitude'] = all_amplitudes_dis
     features_df_distal_all['Half-peak width'] = all_half_widths_dis
@@ -265,8 +265,8 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted):
     features_df_subtracted_all['Second Derivative Ratio'] = all_second_derivative_ratios_sub
     features_df_subtracted_all['IICP Data'] = all_iicp_data
 
-    features_df_distal_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Distal.csv")
-    features_df_proximal_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Proximal.csv")
-    features_df_subtracted_all.to_csv("Features/Joint_Features/IMPROVED_V2_line_threshold_0.0025_threshold_2_ALL_Patients_Features_Subtracted.csv")
+    features_df_distal_all.to_csv("Features/Joint_Features/" + save_name + "_DISTAL.csv")
+    features_df_proximal_all.to_csv("Features/Joint_Features/" + save_name + "_PROXIMAL.csv")
+    features_df_subtracted_all.to_csv("Features/Joint_Features/" + save_name + "_SUBTRACTED.csv")
 
 

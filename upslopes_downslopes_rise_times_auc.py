@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from data_methods import *
 from scipy.integrate import trapz
 from scipy.stats import linregress
+import data_methods
 
 def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
-    peaks = get_peaks(data, fs)
-    data = data_scaler(data)
+    peaks = data_methods.get_peaks(data, fs)
+    data = data_methods.data_scaler(data)
 
     rise_times = []
     decay_times = []
@@ -22,7 +22,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
     second_derivative_ratio = 0
 
     if len(peaks) != 0:
-        peak_points = get_onsets(data, peaks)
+        peak_points = data_methods.get_onsets(data, peaks)
 
         for key in peak_points:
             peak_loc = peak_points[key]["Peak"]
@@ -150,7 +150,8 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 for index in x:
                     y.append(data[index])
                 plt.fill_between(x,y)
-            
+
+            plt.subplots_adjust(hspace=0.3)
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
             plt.show()
