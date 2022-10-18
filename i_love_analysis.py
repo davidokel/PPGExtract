@@ -11,13 +11,13 @@ from protocol import *
 import scipy.signal as sp
 import scipy.stats as stats
 
-#distal_features = load_csv("Features/Joint_Features/Updated_extraction_V4_CLEANED_DISTAL.csv").dropna()
-#proximal_features = load_csv("Features/Joint_Features/Updated_extraction_V4_CLEANED_PROXIMAL.csv").dropna()
-#subtracted_features = load_csv("Features/Joint_Features/Updated_extraction_V4_CLEANED_SUBTRACTED.csv").dropna()
+distal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_DISTAL.csv")
+proximal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_PROXIMAL.csv")
+subtracted_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_SUBTRACTED.csv")
 
-distal_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Distal.csv").dropna()
-proximal_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Proximal.csv").dropna()
-subtracted_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Subtracted.csv").dropna()
+#distal_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Distal.csv").dropna()
+#proximal_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Proximal.csv").dropna()
+#subtracted_features = load_csv("Features/Joint_Features/ALL_Patients_Features_Subtracted.csv").dropna()
 
 # Collecting all indexes of rows in dataframes which have a nan value
 nan_indexes = []
@@ -168,7 +168,7 @@ for column in range(len(features)):
 
     plt.subplot(3,4,column+1)
     plt.boxplot(boxplot_data, showfliers=False)
-    plt.title("Boxplots of " + features[column] + " (P-value: " + str(subtracted_pvalue) + " )", fontsize=8)
+    plt.title("Boxplots of " + features[column] + " (P-value: " + str(below_pvalue) + " )", fontsize=8)
     plt.xticks([1, 2, 3], ["Proximal ICP < 20", "Subtracted ICP < 20", "Distal < 20"], rotation=45, fontsize=6)
 
     below_20_test_statistics.append(float(below_statistic))
@@ -201,7 +201,7 @@ for column in range(len(features)):
 
     plt.subplot(3,4,column+1)
     plt.boxplot(boxplot_data, showfliers=False)
-    plt.title("Boxplots of " + features[column] + " (P-value: " + str(subtracted_pvalue) + " )", fontsize=8)
+    plt.title("Boxplots of " + features[column] + " (P-value: " + str(above_pvalue) + " )", fontsize=8)
     plt.xticks([1, 2, 3], ["Proximal ICP > 20", "Subtracted ICP > 20", "Distal > 20"], rotation=45, fontsize=6)
 
     above_20_test_statistics.append(float(above_statistic))
