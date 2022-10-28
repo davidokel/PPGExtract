@@ -82,7 +82,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 peak = peak_points[key]["Peak"]
                 pre = peak_points[key]["Pre_Peak"]
                 plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='<->'))
-
+            plt.axis('off')
             plt.subplot(4,1,2)
             plt.title("Downslopes")
             plt.plot(data)
@@ -90,7 +90,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 peak = peak_points[key]["Peak"]
                 post = peak_points[key]["Post_Peak"]
                 plt.annotate(text = "", xy=(peak,data[peak]), xytext=(post,data[post]), arrowprops=dict(arrowstyle='<->'))
-
+            plt.axis('off')
             plt.subplot(4,1,3)
             plt.title("Rise times")
             plt.plot(data)
@@ -100,7 +100,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
 
                 plt.annotate(text = "", xy=(peak,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
                 plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[pre]), arrowprops=dict(arrowstyle='<->'))
-
+            plt.axis('off')
             plt.subplot(4,1,4)
             plt.title("Decay times")
             plt.plot(data)
@@ -113,6 +113,8 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
+            plt.axis('off')
+            plt.axis('tight')
             plt.show()
 
             plt.subplot(3,1,1)
@@ -126,7 +128,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 for index in x:
                     y.append(data[index])
                 plt.fill_between(x,y)
-            
+            plt.axis('off')
             plt.subplot(3,1,2)
             plt.title("Systolic under the curve (S-AUC)")
             plt.plot(data)
@@ -138,6 +140,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
                 for index in x:
                     y.append(data[index])
                 plt.fill_between(x,y)
+            plt.axis('off')
 
             plt.subplot(3,1,3)
             plt.title("Diastolic under the curve (D-AUC)")
@@ -154,6 +157,8 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             plt.subplots_adjust(hspace=0.3)
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
+            plt.axis('off')
+            plt.axis('tight')
             plt.show()
 
         return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times)/fs, np.nanmedian(decay_times)/fs, np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratios), second_derivative_ratio

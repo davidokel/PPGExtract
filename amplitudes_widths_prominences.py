@@ -28,6 +28,7 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0):
             plt.plot(peaks,data[peaks],'x')
             plt.vlines(x=peaks, ymin=contour_heights, ymax=data[peaks], label="amplitudes", linestyles="dashed", colors="green")
             plt.legend(loc="upper left")
+            plt.axis('off')
 
             plt.subplot(2,1,2)
             plt.title("Half peak widths")
@@ -37,6 +38,7 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0):
 
             manager = plt.get_current_fig_manager()
             manager.window.showMaximized()
+            plt.axis('off')
             plt.show()
 
         return np.nanmedian(prominences), np.nanmedian(half_widths)/fs

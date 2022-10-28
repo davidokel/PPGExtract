@@ -10,14 +10,16 @@ from data_methods import *
 from protocol import *
 import scipy.signal as sp
 import scipy.stats as stats
+import pandas as pd
+from sklearn import preprocessing
 
-#distal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_DISTAL.csv")
-#proximal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_PROXIMAL.csv")
-#subtracted_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_SUBTRACTED.csv")
+#distal_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_DISTAL_NORM.csv")
+#proximal_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_PROXIMAL_NORM.csv")
+#subtracted_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_SUBTRACTED_NORM.csv")
 
-distal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_DISTAL_SCALED.csv")
-proximal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_PROXIMAL_SCALED.csv")
-subtracted_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_SUBTRACTED_SCALED.csv")
+distal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_DISTAL_NORM.csv")
+proximal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_PROXIMAL_NORM.csv")
+subtracted_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_SUBTRACTED_NORM.csv")
 
 run_boxplots = True
 run_mann = True
@@ -46,6 +48,14 @@ distal_features = distal_features.drop(nan_set)
 proximal_features = proximal_features.drop(nan_set)
 subtracted_features = subtracted_features.drop(nan_set)
 
+for column in distal_features.columns:
+    # Min-max scale each column except "IICP Data"
+    if column != "IICP Data":
+        distal_features[column] = preprocessing.minmax_scale(distal_features[column])
+        proximal_features[column] = preprocessing.minmax_scale(proximal_features[column])
+        subtracted_features[column] = preprocessing.minmax_scale(subtracted_features[column])
+
+
 # GROUP FEATURE DATA BY ICP VALUE > 20 AND < 20
 distal_below_20 = distal_features.loc[distal_features['IICP Data'] <= 20]
 distal_above_20 = distal_features.loc[distal_features['IICP Data'] >= 20]
@@ -63,12 +73,12 @@ if run_boxplots == True:
         boxplot_data = [proximal_below_20[features[column]].tolist(), proximal_above_20[features[column]].tolist(), subtracted_below_20[features[column]].tolist(), subtracted_above_20[features[column]].tolist(), distal_below_20[features[column]].tolist(), distal_above_20[features[column]].tolist()]
         
         #fig = plt.figure()
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
         plt.title("Boxplots of " + features[column] + " for ICP < 20 and ICP > 20", fontsize=10)
         plt.xticks([1, 2, 3, 4, 5, 6], ["Proximal ICP < 20", "Proximal ICP > 20", "Subtracted ICP < 20", "Subtracted > 20", "Distal < 20", "Distal > 20"], rotation=45, fontsize=6)
 
-    plt.subplots_adjust(wspace=0.3, hspace=0.6)
+    plt.subplots_adjust(wspace=0.3, hspace=1)
     plt.suptitle("Boxplots of features for ICP < 20 and ICP > 20 (Proximal, Distal and Subtracted data)", fontsize=15)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
@@ -91,9 +101,9 @@ if run_mann == True:
         distal_statistic, distal_pvalue = stats.mannwhitneyu(below_data.tolist(), above_data.tolist())
         boxplot_data = [below_data.tolist(), above_data.tolist()]
 
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
-        plt.title("Boxplots of " + features[column] + " (P-value: " + str(distal_pvalue) + " )", fontsize=8)
+        plt.title("Boxplots of " + features[column] + " (P-value: " + str(np.round(distal_pvalue,4)) + " )", fontsize=8)
         plt.xticks([1, 2], ["ICP < 20", "ICP > 20"])
 
         distal_test_statistics.append(float(distal_statistic))
@@ -111,9 +121,9 @@ if run_mann == True:
         proximal_statistic, proximal_pvalue = stats.mannwhitneyu(below_data.tolist(), above_data.tolist())
         boxplot_data = [below_data.tolist(), above_data.tolist()]
 
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
-        plt.title("Boxplots of " + features[column] + " (P-value: " + str(proximal_pvalue) + " )", fontsize=8)
+        plt.title("Boxplots of " + features[column] + " (P-value: " + str(np.round(proximal_pvalue,4)) + " )", fontsize=8)
         plt.xticks([1, 2], ["ICP < 20", "ICP > 20"])
 
         proximal_test_statistics.append(float(proximal_statistic))
@@ -131,9 +141,9 @@ if run_mann == True:
         subtracted_statistic, subtracted_pvalue = stats.mannwhitneyu(below_data.tolist(), above_data.tolist())
         boxplot_data = [below_data.tolist(), above_data.tolist()]
 
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
-        plt.title("Boxplots of " + features[column] + " (P-value: " + str(subtracted_pvalue) + " )", fontsize=8)
+        plt.title("Boxplots of " + features[column] + " (P-value: " + str(np.round(subtracted_pvalue,4)) + " )", fontsize=8)
         plt.xticks([1, 2], ["ICP < 20", "ICP > 20"])
 
         subtracted_test_statistics.append(float(subtracted_statistic))
@@ -174,15 +184,15 @@ if run_kruskal == True:
 
         boxplot_data = [proximal_below_data, subtracted_below_data, distal_below_data]
 
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
-        plt.title("Boxplots of " + features[column] + " (P-value: " + str(below_pvalue) + " )", fontsize=8)
+        plt.title("Boxplots of " + features[column] + " (P-value: " + str(np.round(below_pvalue,4)) + " )", fontsize=8)
         plt.xticks([1, 2, 3], ["Proximal ICP < 20", "Subtracted ICP < 20", "Distal < 20"], rotation=45, fontsize=6)
 
         below_20_test_statistics.append(float(below_statistic))
         below_20_p_values.append(float(below_pvalue))
 
-    plt.subplots_adjust(wspace=0.3, hspace=0.6)
+    plt.subplots_adjust(wspace=0.3, hspace=1)
     plt.suptitle("Kruskal-Wallis, P-Values for ICP < 20 (Proximal, Subtracted and Distal)", fontsize=15)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
@@ -207,21 +217,21 @@ if run_kruskal == True:
 
         boxplot_data = [proximal_above_data, subtracted_above_data, distal_above_data]
 
-        plt.subplot(3,4,column+1)
+        plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
-        plt.title("Boxplots of " + features[column] + " (P-value: " + str(above_pvalue) + " )", fontsize=8)
+        plt.title("Boxplots of " + features[column] + " (P-value: " + str(np.round(above_pvalue,4)) + " )", fontsize=8)
         plt.xticks([1, 2, 3], ["Proximal ICP > 20", "Subtracted ICP > 20", "Distal > 20"], rotation=45, fontsize=6)
 
         above_20_test_statistics.append(float(above_statistic))
         above_20_p_values.append(float(above_pvalue))
 
-    plt.subplots_adjust(wspace=0.3, hspace=0.6)
+    plt.subplots_adjust(wspace=0.3, hspace=1)
     plt.suptitle("Kruskal-Wallis, P-Values for ICP > 20 (Proximal, Subtracted and Distal)", fontsize=15)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
     plt.show()
 
-    kruskal_above_results = {'FEATURE':features, 'TEST-STATISTIC':below_20_test_statistics, 'P_VALUE':below_20_p_values}
+    kruskal_above_results = {'FEATURE':features, 'TEST-STATISTIC':above_20_test_statistics, 'P_VALUE':above_20_p_values}
     kruskal_above_results_df = pd.DataFrame(kruskal_above_results)
     kruskal_above_results_df.to_csv("Analysis/Kruskal_Wallis/Kruskall_RESULTS_ABOVE_20.csv")
 
@@ -233,18 +243,15 @@ if run_norm_test == True:
     distal_features.hist(bins = 100)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
-    plt.title("Distal Features Histogram")
     plt.show()
 
     proximal_features.hist(bins=100)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
-    plt.title("Proximal Features Histogram")
     plt.show()
 
     subtracted_features.hist(bins = 100)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
-    plt.title("Subtracted Features Histogram")
     plt.show()
 

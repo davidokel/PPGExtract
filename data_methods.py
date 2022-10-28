@@ -33,11 +33,11 @@ def run_test(data_df, window_seconds, fs, number_of_examples):
             
             #chunk_filtered = normalise_data(data_chunk, fs)
             chunk_filtered = band_pass_filter(data_chunk, 2, 100, 0.5, 12)
-            normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
+            #normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
 
 
-            amplitudes, half_widths = get_amplitudes_widths_prominences(normalised_chunk_filtered,fs=100,visualise=1)
-            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(normalised_chunk_filtered,fs=100,visualise=1)
+            amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1)
+            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1)
 
 # Removing values above a certain threshold from dataframe based on the gold_standard
 def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0):
@@ -93,7 +93,7 @@ def normalise_data(data,fs):
     sos_dc = sp.butter(3, (0.2/(fs/2)), btype='lowpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
     dc = sp.sosfiltfilt(sos_dc, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
     
-    normalised = (ac/dc)*10
+    normalised = (ac/dc)
 
     return normalised
 
@@ -288,6 +288,8 @@ def get_onsets(data,peak_locs,fs=100):
     data = (data - data.min())/(data.max() - data.min())
     data_list = data.tolist()
     peak_points = {}
+    pre_peaks = []
+    post_peaks = []
     
     if len(peak_locs) > 0:
         # If peaks exist calculate all prominences for the exisitng peaks
@@ -356,5 +358,8 @@ def get_onsets(data,peak_locs,fs=100):
                 peak_points["Peak_"+str(peak)]["Peak"] = peak_locs[peak]
                 peak_points["Peak_"+str(peak)]["Pre_Peak"] = min_pre
                 peak_points["Peak_"+str(peak)]["Post_Peak"] = min_post
+                pre_peaks.append(min_pre)
+                post_peaks.append(min_post)
+
 
         return peak_points
