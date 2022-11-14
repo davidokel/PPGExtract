@@ -3,6 +3,7 @@ from pulse_processing import *
 from upslopes_downslopes_rise_times_auc import *
 from data_methods import *
 import math
+from sqis import get_sqis
 
 def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     columns = iicp.columns
@@ -24,6 +25,9 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     all_auc_ratios_dis, all_auc_ratios_pro, all_auc_ratios_sub = [],[],[]
     all_second_derivative_ratios_dis, all_second_derivative_ratios_pro, all_second_derivative_ratios_sub = [],[],[]
     all_iicp_data = []
+    all_distal_skews, all_distal_kurts, all_distal_snrs, all_distal_zcrs, all_distal_ents, all_distal_pis = [],[],[],[],[],[]
+    all_proximal_skews, all_proximal_kurts, all_proximal_snrs, all_proximal_zcrs, all_proximal_ents, all_proximal_pis = [],[],[],[],[],[]
+    all_subtracted_skews, all_subtracted_kurts, all_subtracted_snrs, all_subtracted_zcrs, all_subtracted_ents, all_subtracted_pis = [],[],[],[],[],[]
 
     for column in range(len(columns)):
         features_df_distal = pd.DataFrame(columns=features_list)
@@ -51,13 +55,16 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
         auc_ratios_dis, auc_ratios_pro, auc_ratios_sub = [],[],[]
         second_derivative_ratios_dis, second_derivative_ratios_pro, second_derivative_ratios_sub = [],[],[]
         iicp_value = []
+        distal_skews, distal_kurts, distal_snrs, distal_zcrs, distal_ents, distal_pis = [],[],[],[],[],[]
+        proximal_skews, proximal_kurts, proximal_snrs, proximal_zcrs, proximal_ents, proximal_pis = [],[],[],[],[],[]
+        subtracted_skews, subtracted_kurts, subtracted_snrs, subtracted_zcrs, subtracted_ents, subtracted_pis = [],[],[],[],[],[]
 
         chunk_start = 0
         chunk_end = window_size
 
         print("######################  Patient: " + patient + "  ########################")
         for window in range(num_windows): 
-            print(str(window+1) + "/" + str(num_windows))
+            #print(str(window+1) + "/" + str(num_windows))
 
             iicp_chunk = iicp_data[chunk_start:chunk_end]
             distal_chunk = distal_data[chunk_start:chunk_end]
@@ -65,7 +72,7 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
             subtracted_chunk = subtracted_data[chunk_start:chunk_end]
 
             if len(iicp_chunk) != 0:
-                print("Chunk start: " + str(chunk_start) + " Chunk end: " + str(chunk_end))
+                #print("Chunk start: " + str(chunk_start) + " Chunk end: " + str(chunk_end))
 
                 distal_chunk = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
                 distal_chunk = normalise_data(distal_chunk, fs=100)
@@ -89,6 +96,11 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
                 distal_upslope, distal_downslope, distal_rise_time, distal_decay_time, distal_auc, distal_sys_auc, distal_dia_auc, distal_auc_ratio, distal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(distal_chunk,fs=100,visualise=0)
                 proximal_upslope, proximal_downslope, proximal_rise_time, proximal_decay_time, proximal_auc, proximal_sys_auc, proximal_dia_auc, proximal_auc_ratio, proximal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(proximal_chunk,fs=100,visualise=0)
                 subtracted_upslope, subtracted_downslope, subtracted_rise_time, subtracted_decay_time, subtracted_auc, subtracted_sys_auc, subtracted_dia_auc, subtracted_auc_ratio, subtracted_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(subtracted_chunk,fs=100,visualise=0)
+                
+                #skew, kurt, snr, zcr, ent, pi, sqi_dictionary
+                distal_skew, distal_kurt, distal_snr, distal_zcr, distal_ent, distal_pi,_ = get_sqis(distal_chunk,fs=100,visualise=0)
+                proximal_skew, proximal_kurt, proximal_snr, proximal_zcr, proximal_ent, proximal_pi,_ = get_sqis(proximal_chunk,fs=100,visualise=0)
+                subtracted_skew, subtracted_kurt, subtracted_snr, subtracted_zcr, subtracted_ent, subtracted_pi,_ = get_sqis(subtracted_chunk,fs=100,visualise=0)
 
                 amplitudes_dis.append(distal_amplitude)
                 amplitudes_pro.append(proximal_amplitude)
@@ -140,6 +152,30 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
                 else:
                     iicp_value.append(np.NaN)
 
+                distal_skews.append(distal_skew)
+                proximal_skews.append(proximal_skew)
+                subtracted_skews.append(subtracted_skew)
+                
+                distal_kurts.append(distal_kurt)
+                proximal_kurts.append(proximal_kurt)
+                subtracted_kurts.append(subtracted_kurt)
+
+                distal_snrs.append(distal_snr)
+                proximal_snrs.append(proximal_snr)
+                subtracted_snrs.append(subtracted_snr)
+
+                distal_zcrs.append(distal_zcr)
+                proximal_zcrs.append(proximal_zcr)
+                subtracted_zcrs.append(subtracted_zcr)
+
+                distal_ents.append(distal_ent)
+                proximal_ents.append(proximal_ent)
+                subtracted_ents.append(subtracted_ent)
+
+                distal_pis.append(distal_pi)
+                proximal_pis.append(proximal_pi)
+                subtracted_pis.append(subtracted_pi)
+                
             chunk_start += window_size
             chunk_end += window_size
 
@@ -189,6 +225,30 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
 
         all_iicp_data.extend(iicp_value)
 
+        all_distal_skews.extend(distal_skews)
+        all_proximal_skews.extend(proximal_skews)
+        all_subtracted_skews.extend(subtracted_skews)
+
+        all_distal_kurts.extend(distal_kurts)
+        all_proximal_kurts.extend(proximal_kurts)
+        all_subtracted_kurts.extend(subtracted_kurts)
+
+        all_distal_snrs.extend(distal_snrs)
+        all_proximal_snrs.extend(proximal_snrs)
+        all_subtracted_snrs.extend(subtracted_snrs)
+
+        all_distal_zcrs.extend(distal_zcrs)
+        all_proximal_zcrs.extend(proximal_zcrs)
+        all_subtracted_zcrs.extend(subtracted_zcrs)
+
+        all_distal_ents.extend(distal_ents)
+        all_proximal_ents.extend(proximal_ents)
+        all_subtracted_ents.extend(subtracted_ents)
+
+        all_distal_pis.extend(distal_pis)
+        all_proximal_pis.extend(proximal_pis)
+        all_subtracted_pis.extend(subtracted_pis)
+        
         features_df_distal['Amplitude'] = amplitudes_dis
         features_df_distal['Half-peak width'] = half_widths_dis
         features_df_distal['Upslope'] = upslopes_dis
@@ -201,6 +261,12 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
         features_df_distal['AUC Ratio'] = auc_ratios_dis
         features_df_distal['Second Derivative Ratio'] = second_derivative_ratios_dis
         features_df_distal['IICP Data'] = iicp_value
+        features_df_distal['Skew'] = distal_skews
+        features_df_distal['Kurtosis'] = distal_kurts
+        features_df_distal['SNR'] = distal_snrs
+        features_df_distal['ZCR'] = distal_zcrs
+        features_df_distal['Entropy'] = distal_ents
+        features_df_distal['PI'] = distal_pis
 
         features_df_proximal['Amplitude'] = amplitudes_pro
         features_df_proximal['Half-peak width'] = half_widths_pro
@@ -214,6 +280,12 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
         features_df_proximal['AUC Ratio'] = auc_ratios_pro
         features_df_proximal['Second Derivative Ratio'] = second_derivative_ratios_pro
         features_df_proximal['IICP Data'] = iicp_value
+        features_df_proximal['Skew'] = proximal_skews
+        features_df_proximal['Kurtosis'] = proximal_kurts
+        features_df_proximal['SNR'] = proximal_snrs
+        features_df_proximal['ZCR'] = proximal_zcrs
+        features_df_proximal['Entropy'] = proximal_ents
+        features_df_proximal['PI'] = proximal_pis
 
         features_df_subtracted['Amplitude'] = amplitudes_sub
         features_df_subtracted['Half-peak width'] = half_widths_sub
@@ -227,10 +299,16 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
         features_df_subtracted['AUC Ratio'] = auc_ratios_sub
         features_df_subtracted['Second Derivative Ratio'] = second_derivative_ratios_sub
         features_df_subtracted['IICP Data'] = iicp_value
+        features_df_subtracted['Skew'] = subtracted_skews
+        features_df_subtracted['Kurtosis'] = subtracted_kurts
+        features_df_subtracted['SNR'] = subtracted_snrs
+        features_df_subtracted['ZCR'] = subtracted_zcrs
+        features_df_subtracted['Entropy'] = subtracted_ents
+        features_df_subtracted['PI'] = subtracted_pis
 
-        #features_df_distal.to_csv("Features/Distal/" + save_name + "_" +patient+"_Features_Distal.csv")
-        #features_df_proximal.to_csv("Features/Proximal/" + save_name + "_" +patient+"_Features_Proximal.csv")
-        #features_df_subtracted.to_csv("Features/Subtracted/" + save_name + "_" +patient+"_Features_Subtracted.csv")
+        features_df_distal.to_csv("Features/Distal/" + save_name + "_" +patient+"_Features_Distal.csv")
+        features_df_proximal.to_csv("Features/Proximal/" + save_name + "_" +patient+"_Features_Proximal.csv")
+        features_df_subtracted.to_csv("Features/Subtracted/" + save_name + "_" +patient+"_Features_Subtracted.csv")
 
     features_df_distal_all['Amplitude'] = all_amplitudes_dis
     features_df_distal_all['Half-peak width'] = all_half_widths_dis
@@ -244,6 +322,12 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     features_df_distal_all['AUC Ratio'] = all_auc_ratios_dis
     features_df_distal_all['Second Derivative Ratio'] = all_second_derivative_ratios_dis
     features_df_distal_all['IICP Data'] = all_iicp_data
+    features_df_distal_all['Skew'] = all_distal_skews
+    features_df_distal_all['Kurtosis'] = all_distal_kurts
+    features_df_distal_all['SNR'] = all_distal_snrs
+    features_df_distal_all['ZCR'] = all_distal_zcrs
+    features_df_distal_all['Entropy'] = all_distal_ents
+    features_df_distal_all['PI'] = all_distal_pis
 
     features_df_proximal_all['Amplitude'] = all_amplitudes_pro
     features_df_proximal_all['Half-peak width'] = all_half_widths_pro
@@ -257,6 +341,12 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     features_df_proximal_all['AUC Ratio'] = all_auc_ratios_pro
     features_df_proximal_all['Second Derivative Ratio'] = all_second_derivative_ratios_pro
     features_df_proximal_all['IICP Data'] = all_iicp_data
+    features_df_proximal_all['Skew'] = all_proximal_skews
+    features_df_proximal_all['Kurtosis'] = all_proximal_kurts
+    features_df_proximal_all['SNR'] = all_proximal_snrs
+    features_df_proximal_all['ZCR'] = all_proximal_zcrs
+    features_df_proximal_all['Entropy'] = all_proximal_ents
+    features_df_proximal_all['PI'] = all_proximal_pis
 
     features_df_subtracted_all['Amplitude'] = all_amplitudes_sub
     features_df_subtracted_all['Half-peak width'] = all_half_widths_sub
@@ -270,6 +360,12 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
     features_df_subtracted_all['AUC Ratio'] = all_auc_ratios_sub
     features_df_subtracted_all['Second Derivative Ratio'] = all_second_derivative_ratios_sub
     features_df_subtracted_all['IICP Data'] = all_iicp_data
+    features_df_subtracted_all['Skew'] = all_subtracted_skews
+    features_df_subtracted_all['Kurtosis'] = all_subtracted_kurts
+    features_df_subtracted_all['SNR'] = all_subtracted_snrs
+    features_df_subtracted_all['ZCR'] = all_subtracted_zcrs
+    features_df_subtracted_all['Entropy'] = all_subtracted_ents
+    features_df_subtracted_all['PI'] = all_subtracted_pis
 
     features_df_distal_all.to_csv("Features/Joint_Features/" + save_name + "_DISTAL_NORM.csv")
     features_df_proximal_all.to_csv("Features/Joint_Features/" + save_name + "_PROXIMAL_NORM.csv")

@@ -8,6 +8,9 @@ import random as rd
 from upslopes_downslopes_rise_times_auc import *
 from amplitudes_widths_prominences import *
 import scipy.stats as stats
+from sqis import get_sqis
+from scipy.interpolate import interp1d
+
 
 def run_test(data_df, window_seconds, fs, number_of_examples):
     columns = data_df.columns
@@ -17,7 +20,9 @@ def run_test(data_df, window_seconds, fs, number_of_examples):
     for i in range(number_of_examples): 
         random_patient = rd.randint(0,len(columns)-1)
 
-        data = data_df[data_df.columns[random_patient]].dropna().to_numpy()
+        data = data_df[data_df.columns[random_patient]]
+
+        data = data.dropna().to_numpy()
         data_flipped = np.flip(data)
 
         if len(data_flipped) !=0:
@@ -35,9 +40,9 @@ def run_test(data_df, window_seconds, fs, number_of_examples):
             chunk_filtered = band_pass_filter(data_chunk, 2, 100, 0.5, 12)
             #normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
 
-
             amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1)
             upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1)
+            get_sqis(data_chunk, fs, visualise=1)
 
 # Removing values above a certain threshold from dataframe based on the gold_standard
 def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0):
@@ -360,6 +365,38 @@ def get_onsets(data,peak_locs,fs=100):
                 peak_points["Peak_"+str(peak)]["Post_Peak"] = min_post
                 pre_peaks.append(min_pre)
                 post_peaks.append(min_post)
-
-
+                
         return peak_points
+
+def get_envelope(data,seconds,fs):
+    distance = (len(data)/fs)*seconds
+    
+    if distance < 1:
+        distance = 1
+
+    """height = np.percentile(data,70)
+    peaks,_ = sp.find_peaks(data, distance = distance, height = height)
+    height = np.percentile(-data,70)
+    troughs,_ = sp.find_peaks(-data, distance = distance, height = height)"""
+
+    peaks = get_peaks(data, 100) 
+    troughs = get_peaks(-data, 100)
+
+    if len(peaks) > 4 and len(troughs) > 4:
+        u_p = interp1d(peaks, data[peaks], kind = 'cubic', bounds_error=False, fill_value = np.median(data[peaks]))
+        l_p = interp1d(troughs, data[troughs],  kind = 'cubic', bounds_error=False, fill_value = np.median(data[troughs]))
+       
+        upper_envelope = np.array([u_p(i) for i in range(len(data))])
+        lower_envelope = np.array([l_p(i) for i in range(len(data))])
+    else:
+        upper_envelope = []
+        lower_envelope = []
+        peaks = []
+        troughs = []
+    
+    if len(upper_envelope) > 0 or len(lower_envelope) > 0:
+        envelope_difference = upper_envelope - lower_envelope
+    else:
+        envelope_difference = []
+
+    return upper_envelope, lower_envelope, peaks, troughs, envelope_difference

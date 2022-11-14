@@ -161,6 +161,6 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             plt.axis('tight')
             plt.show()
 
-        return np.nanmedian(upslopes), np.nanmedian(downslopes), np.nanmedian(rise_times)/fs, np.nanmedian(decay_times)/fs, np.nanmedian(auc), np.nanmedian(sys_auc), np.nanmedian(dia_auc), np.nanmedian(auc_ratios), second_derivative_ratio
+        return float(np.nanmedian(upslopes)), float(np.nanmedian(downslopes)), float(np.nanmedian(rise_times)/fs), float(np.nanmedian(decay_times)/fs), float(np.nanmedian(auc)), float(np.nanmedian(sys_auc)), float(np.nanmedian(dia_auc)), float(np.nanmedian(auc_ratios)), float(second_derivative_ratio)
     else:
         return np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN
