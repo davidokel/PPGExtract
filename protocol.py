@@ -74,28 +74,28 @@ def run_protocol(window_size, iicp, distal, proximal, subtracted, save_name):
             if len(iicp_chunk) != 0:
                 #print("Chunk start: " + str(chunk_start) + " Chunk end: " + str(chunk_end))
 
-                distal_chunk = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
-                distal_chunk = normalise_data(distal_chunk, fs=100)
+                distal_chunk_filt = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
+                distal_chunk_norm = normalise_data(distal_chunk_filt, fs=100)
                 #distal_chunk = band_pass_filter(distal_chunk, 2, 100, 0.5, 12)
                 #distal_chunk = (distal_chunk - distal_chunk.min())/(distal_chunk.max() - distal_chunk.min())
 
-                proximal_chunk = band_pass_filter(proximal_chunk, 2, 100, 0.5, 12)
-                proximal_chunk = normalise_data(proximal_chunk, fs=100)
+                proximal_chunk_filt = band_pass_filter(proximal_chunk, 2, 100, 0.5, 12)
+                proximal_chunk_norm = normalise_data(proximal_chunk_filt, fs=100)
                 #proximal_chunk = band_pass_filter(proximal_chunk, 2, 100, 0.5, 12)
                 #proximal_chunk = (proximal_chunk - proximal_chunk.min())/(proximal_chunk.max() - proximal_chunk.min())
 
-                subtracted_chunk = band_pass_filter(subtracted_chunk, 2, 100, 0.5, 12)
-                subtracted_chunk = normalise_data(subtracted_chunk, fs=100)
+                subtracted_chunk_filt = band_pass_filter(subtracted_chunk, 2, 100, 0.5, 12)
+                subtracted_chunk_norm = normalise_data(subtracted_chunk_filt, fs=100)
                 #subtracted_chunk = band_pass_filter(subtracted_chunk, 2, 100, 0.5, 12)
                 #subtracted_chunk = (subtracted_chunk - subtracted_chunk.min())/(subtracted_chunk.max() - subtracted_chunk.min())
 
-                distal_amplitude, distal_half_width = get_amplitudes_widths_prominences(distal_chunk,fs=100,visualise=0)
-                proximal_amplitude, proximal_half_width = get_amplitudes_widths_prominences(proximal_chunk,fs=100,visualise=0)
-                subtracted_amplitude, subtracted_half_width = get_amplitudes_widths_prominences(subtracted_chunk,fs=100,visualise=0)
+                distal_amplitude, distal_half_width = get_amplitudes_widths_prominences(distal_chunk_norm,fs=100,visualise=0)
+                proximal_amplitude, proximal_half_width = get_amplitudes_widths_prominences(proximal_chunk_norm,fs=100,visualise=0)
+                subtracted_amplitude, subtracted_half_width = get_amplitudes_widths_prominences(subtracted_chunk_norm,fs=100,visualise=0)
 
-                distal_upslope, distal_downslope, distal_rise_time, distal_decay_time, distal_auc, distal_sys_auc, distal_dia_auc, distal_auc_ratio, distal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(distal_chunk,fs=100,visualise=0)
-                proximal_upslope, proximal_downslope, proximal_rise_time, proximal_decay_time, proximal_auc, proximal_sys_auc, proximal_dia_auc, proximal_auc_ratio, proximal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(proximal_chunk,fs=100,visualise=0)
-                subtracted_upslope, subtracted_downslope, subtracted_rise_time, subtracted_decay_time, subtracted_auc, subtracted_sys_auc, subtracted_dia_auc, subtracted_auc_ratio, subtracted_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(subtracted_chunk,fs=100,visualise=0)
+                distal_upslope, distal_downslope, distal_rise_time, distal_decay_time, distal_auc, distal_sys_auc, distal_dia_auc, distal_auc_ratio, distal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(distal_chunk_norm,fs=100,visualise=0)
+                proximal_upslope, proximal_downslope, proximal_rise_time, proximal_decay_time, proximal_auc, proximal_sys_auc, proximal_dia_auc, proximal_auc_ratio, proximal_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(proximal_chunk_norm,fs=100,visualise=0)
+                subtracted_upslope, subtracted_downslope, subtracted_rise_time, subtracted_decay_time, subtracted_auc, subtracted_sys_auc, subtracted_dia_auc, subtracted_auc_ratio, subtracted_second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(subtracted_chunk_norm,fs=100,visualise=0)
                 
                 #skew, kurt, snr, zcr, ent, pi, sqi_dictionary
                 distal_skew, distal_kurt, distal_snr, distal_zcr, distal_ent, distal_pi,_ = get_sqis(distal_chunk,fs=100,visualise=0)

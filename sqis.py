@@ -43,32 +43,20 @@ def sqi_statistics(data):
     
     return float(skew), float(kurt)
 
-def sqi_snr(data, axis=0, ddof=0):
-    """
-    The signal-to-noise ratio of the input data.
-    Returns the signal-to-noise ratio of `a`, here defined as the mean
-    divided by the standard deviation.
-    Parameters
-    ----------
-    a : array_like
-        An array_like object containing the sample data.
-    axis : int or None, optional
-        If axis is equal to None, the array is first ravel'd. If axis is an
-        integer, this is the axis over which to operate. Default is 0.
-    ddof : int, optional
-        Degrees of freedom correction for standard deviation. Default is 0.
-    Returns
-    -------
-    s2n : ndarray
-        The mean to standard deviation ratio(s) along `axis`, or 0 where the
-        standard deviation is 0.
-    """
-    data = np.asanyarray(data)
+def sqi_snr(data, fs = 100):
+    """data = np.asanyarray(data)
     m = data.mean(axis)
     sd = data.std(axis=axis, ddof=ddof)
 
     #return np.where(sd == 0, 0, m/sd)
-    return float(20*np.log10(abs(np.where(sd == 0, 0, m/sd))))
+    return float(20*np.log10(abs(np.where(sd == 0, 0, m/sd))))"""
+
+    sos = sp.butter(10, 10, btype = 'highpass', analog = False, output = 'sos', fs = fs)
+    noise = sp.sosfiltfilt(sos, data)
+    
+    snr = 10*np.log10(np.sum(data)**2/np.sum(noise)**2)
+    
+    return snr
 
 def sqi_zcr (data,fs):
     """
