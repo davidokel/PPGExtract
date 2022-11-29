@@ -11,7 +11,6 @@ import scipy.stats as stats
 from sqis import get_sqis
 from scipy.interpolate import interp1d
 
-
 def run_test(data_df, window_seconds, fs, number_of_examples):
     columns = data_df.columns
 
@@ -23,7 +22,8 @@ def run_test(data_df, window_seconds, fs, number_of_examples):
         data = data_df[data_df.columns[random_patient]]
 
         data = data.dropna().to_numpy()
-        data_flipped = np.flip(data)
+
+        data_flipped = -data
 
         if len(data_flipped) !=0:
             random_chunk_start = rd.randint(0,len(data_flipped)-1)
@@ -36,23 +36,20 @@ def run_test(data_df, window_seconds, fs, number_of_examples):
             manager.window.showMaximized()
             plt.show()
             
-            #chunk_filtered = normalise_data(data_chunk, fs)
-            chunk_filtered = band_pass_filter(data_chunk, 2, 100, 0.5, 12)
-            #normalised_chunk_filtered = (chunk_filtered - chunk_filtered.min())/(chunk_filtered.max() - chunk_filtered.min())
+            chunk_filtered = normalise_data(data_chunk, fs)
 
-            amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1)
-            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1)
+            amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1, debug=0)
+            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1, debug=0)
             get_sqis(data_chunk, fs, visualise=1)
 
 # Removing values above a certain threshold from dataframe based on the gold_standard
-def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0):
+def remove_values(gold_standard, distal, proximal, upper=60, lower=0):
     
     # Iterate over columns of the gold_standard dataframe
     for column in range(len(gold_standard.columns)):
         gold_standard_data = np.array(gold_standard.iloc[:,column])
         distal_data = np.array(distal.iloc[:,column])
         proximal_data = np.array(proximal.iloc[:,column])
-        subtracted_data = np.array(subtracted.iloc[:,column])
 
         upper_i = np.where(gold_standard_data > upper)[0]
         gold_standard_data = np.delete(gold_standard_data,upper_i)
@@ -64,9 +61,6 @@ def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0
         proximal_data = np.delete(proximal_data,upper_i)
         proximal.iloc[:,column] = pd.Series(proximal_data)
 
-        subtracted_data = np.delete(subtracted_data,upper_i)
-        subtracted.iloc[:,column] = pd.Series(subtracted_data)
-
         lower_i = np.where(gold_standard_data < lower)[0]
         gold_standard_data = np.delete(gold_standard_data,lower_i)
         gold_standard.iloc[:,column] = pd.Series(gold_standard_data)
@@ -77,11 +71,8 @@ def remove_values(gold_standard, distal, proximal, subtracted, upper=60, lower=0
         proximal_data = np.delete(proximal_data,lower_i)
         proximal.iloc[:,column] = pd.Series(proximal_data)
 
-        subtracted_data = np.delete(subtracted_data,lower_i)
-        subtracted.iloc[:,column] = pd.Series(subtracted_data)
-
     print("Defined thresholds applied and values removed")
-    return gold_standard, distal, proximal, subtracted
+    return gold_standard, distal, proximal
         
 #########################
 # LOADING DATA FROM CSV #
@@ -98,7 +89,7 @@ def normalise_data(data,fs):
     sos_dc = sp.butter(3, (0.2/(fs/2)), btype='lowpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
     dc = sp.sosfiltfilt(sos_dc, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
     
-    normalised = (ac/dc)
+    normalised = 10*(ac/dc)
 
     return normalised
 
@@ -166,7 +157,7 @@ def get_peaks(data,fs):
     peaks = []
 
     data = (data - data.min())/(data.max() - data.min())
-
+    
     height = np.percentile(data, 70)
     peak_locs,_ = sp.find_peaks(data, height=height, distance=fs*0.4, prominence=0.1)
 
@@ -219,18 +210,6 @@ def get_peaks(data,fs):
 
     prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
     widths_all = sp.peak_widths(data, peak_locs)[0].tolist()
-
-    """if len(anomalous_values) != 0:
-        plt.plot(data)
-        plt.plot(peak_locs, data[peak_locs], "x")
-        plt.axhline(y=upper, color='r', linestyle='-')
-        plt.axhline(y=lower, color='r', linestyle='-')
-        # Iterating and plotting anomalous_values as dots
-        for value in removed:
-            plt.plot(value, data[value], "o")
-        manager = plt.get_current_fig_manager()
-        manager.window.showMaximized()
-        plt.show()"""
     
     for peak in range(len(peak_locs)):
         # Calculating the search space either side of the peak:

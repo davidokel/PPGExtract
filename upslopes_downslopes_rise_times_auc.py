@@ -4,9 +4,9 @@ from scipy.integrate import trapz
 from scipy.stats import linregress
 import data_methods
 
-def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
-    peaks = data_methods.get_peaks(data, fs)
-    data = data_methods.data_scaler(data)
+def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0, debug = 0):
+    peaks = data_methods.get_peaks(data, fs) # Given the data and the sampling frequency, get the peak locations
+    data_scaled = data_methods.data_scaler(data) # Scale the data to be between 0 and 1 (Used for plotting)
 
     rise_times = []
     decay_times = []
@@ -21,8 +21,25 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
 
     second_derivative_ratio = 0
 
-    if len(peaks) != 0:
-        peak_points = data_methods.get_onsets(data, peaks)
+    seconds = int((len(data)/fs)*0.25) # Simplified quality assessment, if there are less peaks than 1/4 of the data length (in seconds) then don't extract features
+    if (len(peaks) > seconds) == True:
+        peak_points = data_methods.get_onsets(data, peaks) # Given the data and the peak locations, get the onset locations
+        
+        # Printing and plotting used for debugging
+        if debug == 1:
+            for key in peak_points:
+                print("Peak: ", key)
+                print("Onset: ", peak_points[key]["Pre_Peak"])
+                print("Peak: ", peak_points[key]["Peak"])
+                print("Offset: ", peak_points[key]["Post_Peak"])
+                print("")
+
+                # Plot peak, onset and offset
+                plt.plot(data)
+                plt.plot(peak_points[key]["Pre_Peak"], data[peak_points[key]["Pre_Peak"]], "x")
+                plt.plot(peak_points[key]["Peak"], data[peak_points[key]["Peak"]], "x")
+                plt.plot(peak_points[key]["Post_Peak"], data[peak_points[key]["Post_Peak"]], "x")
+                plt.show()
 
         for key in peak_points:
             peak_loc = peak_points[key]["Peak"]
@@ -30,7 +47,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
 
             slope, intercept, r_value, p_value, std_err = linregress([pre_loc,peak_loc],[data[pre_loc],data[peak_loc]])
             
-            rise_time = (peak_loc-pre_loc)
+            rise_time = abs(peak_loc-pre_loc)
             rise_times.append(rise_time)
             upslopes.append(slope)
 
@@ -38,7 +55,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             
             slope, intercept, r_value, p_value, std_err = linregress([peak_loc,post_loc],[data[peak_loc],data[post_loc]])
 
-            decay_time = (post_loc-peak_loc)
+            decay_time = abs(post_loc-peak_loc)
             decay_times.append(decay_time)
             downslopes.append(slope)
 
@@ -50,23 +67,23 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             x = range(pre,post)
             y = []
             for index in x:
-                y.append(data[index])
+                y.append(abs(data[index]))
             auc.append(trapz(y,x))
 
             x = range(pre,peak_loc)
             y = []
             for index in x:
-                y.append(data[index])
+                y.append(abs(data[index]))
             sys_auc.append(trapz(y,x))
 
             x = range(peak_loc,post)
             y = []
             for index in x:
-                y.append(data[index])
+                y.append(abs(data[index]))
             dia_auc.append(trapz(y,x))
 
         for area in range(len(dia_auc)):
-            auc_ratio = dia_auc[area]/sys_auc[area]
+            auc_ratio = sys_auc[area]/dia_auc[area]
             auc_ratios.append(auc_ratio)
 
         second_derivative = np.diff(np.diff(data))
@@ -119,39 +136,39 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
 
             plt.subplot(3,1,1)
             plt.title("Area under the curve (AUC)")
-            plt.plot(data)
+            plt.plot(data_scaled)
             for key in peak_points:
                 pre = peak_points[key]["Pre_Peak"]
                 post = peak_points[key]["Post_Peak"]
                 x = range(pre,post)
                 y = []
                 for index in x:
-                    y.append(data[index])
+                    y.append(abs(data_scaled[index]))
                 plt.fill_between(x,y)
             plt.axis('off')
             plt.subplot(3,1,2)
             plt.title("Systolic under the curve (S-AUC)")
-            plt.plot(data)
+            plt.plot(data_scaled)
             for key in peak_points:
                 peak = peak_points[key]["Peak"]
                 onset = peak_points[key]["Pre_Peak"]
                 x = range(onset,peak)
                 y = []
                 for index in x:
-                    y.append(data[index])
+                    y.append(abs(data_scaled[index]))
                 plt.fill_between(x,y)
             plt.axis('off')
 
             plt.subplot(3,1,3)
             plt.title("Diastolic under the curve (D-AUC)")
-            plt.plot(data)
+            plt.plot(data_scaled)
             for key in peak_points:
                 peak = peak_points[key]["Peak"]
                 onset = peak_points[key]["Post_Peak"]
                 x = range(peak,onset)
                 y = []
                 for index in x:
-                    y.append(data[index])
+                    y.append(abs(data_scaled[index]))
                 plt.fill_between(x,y)
 
             plt.subplots_adjust(hspace=0.3)
@@ -161,6 +178,16 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0):
             plt.axis('tight')
             plt.show()
 
-        return float(np.nanmedian(upslopes)), float(np.nanmedian(downslopes)), float(np.nanmedian(rise_times)/fs), float(np.nanmedian(decay_times)/fs), float(np.nanmedian(auc)), float(np.nanmedian(sys_auc)), float(np.nanmedian(dia_auc)), float(np.nanmedian(auc_ratios)), float(second_derivative_ratio)
+            print("Upslope: ", float(np.nanmedian(upslopes)))
+            print("Downslope: ", float(np.nanmedian(downslopes)))
+            print("Rise time: ", float(np.nanmedian(rise_times)))
+            print("Decay time: ", float(np.nanmedian(decay_times)))
+            print("AUC: ", float(np.nanmedian(auc)))
+            print("S-AUC: ", float(np.nanmedian(sys_auc)))
+            print("D-AUC: ", float(np.nanmedian(dia_auc)))
+            print("AUC ratio: ", float(np.nanmedian(auc_ratios)))
+            print("Second derivative ratio: ", second_derivative_ratio)
+
+        return float(np.nanmedian(upslopes)), float(np.nanmedian(downslopes)), float(np.nanmedian(rise_times)), float(np.nanmedian(decay_times)), float(np.nanmedian(auc)), float(np.nanmedian(sys_auc)), float(np.nanmedian(dia_auc)), float(np.nanmedian(auc_ratios)), float(abs(second_derivative_ratio))
     else:
         return np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN

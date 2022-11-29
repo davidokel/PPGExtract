@@ -169,5 +169,5 @@ def calculate_sqi_data(data, folder_save_path):
 #visual_assessment(clean_810_distal,clean_IICP,6000,500,"Features/Distal/Visual_Assessment/")
 
 # call calculate_sqi_data function
-calculate_sqi_data("Features/Joint_Features/Visual_Assessment_DISTAL/good_data.csv", "Features/Joint_Features/Visual_Assessment_DISTAL/")
+#calculate_sqi_data("Features/Joint_Features/Visual_Assessment_DISTAL/good_data.csv", "Features/Joint_Features/Visual_Assessment_DISTAL/")
 
