@@ -12,14 +12,10 @@ import scipy.signal as sp
 import scipy.stats as stats
 import pandas as pd
 from sklearn import preprocessing
+import seaborn as sns
 
-#distal_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_DISTAL_NORM.csv")
-#proximal_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_PROXIMAL_NORM.csv")
-#subtracted_features = load_csv("Features/Joint_Features/RERUN_Updated_extraction_V4_CLEANED_SUBTRACTED_NORM.csv")
-
-distal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_DISTAL_NORM.csv")
-proximal_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_PROXIMAL_NORM.csv")
-subtracted_features = load_csv("Features/Joint_Features/WIDTHS__Updated_extraction_V4_CLEANED_SUBTRACTED_NORM.csv")
+distal_features = load_csv("Features_All_Wav/770/distal_features.csv")
+proximal_features = load_csv("Features_All_Wav/770/proximal_features.csv")
 
 run_boxplots = True
 run_mann = True
@@ -36,41 +32,32 @@ for i in proximal_features.index:
     # Check if dataframe row includes a nan value
     if proximal_features.loc[i].isnull().values.any():
         nan_indexes.append(i)
-for i in subtracted_features.index:
-    # Check if dataframe row includes a nan value
-    if subtracted_features.loc[i].isnull().values.any():
-        nan_indexes.append(i)
 
 nan_set = set(nan_indexes)
 
 # Remove all rows with nan values from all dataframes
 distal_features = distal_features.drop(nan_set)
 proximal_features = proximal_features.drop(nan_set)
-subtracted_features = subtracted_features.drop(nan_set)
 
 for column in distal_features.columns:
     # Min-max scale each column except "IICP Data"
     if column != "IICP Data":
         distal_features[column] = preprocessing.minmax_scale(distal_features[column])
         proximal_features[column] = preprocessing.minmax_scale(proximal_features[column])
-        subtracted_features[column] = preprocessing.minmax_scale(subtracted_features[column])
 
 
 # GROUP FEATURE DATA BY ICP VALUE > 20 AND < 20
-distal_below_20 = distal_features.loc[distal_features['IICP Data'] <= 20]
-distal_above_20 = distal_features.loc[distal_features['IICP Data'] >= 20]
+distal_below_20 = distal_features.loc[distal_features['IICP'] <= 20]
+distal_above_20 = distal_features.loc[distal_features['IICP'] >= 20]
 
-proximal_below_20 = proximal_features.loc[proximal_features['IICP Data'] <= 20]
-proximal_above_20 = proximal_features.loc[proximal_features['IICP Data'] >= 20]
-
-subtracted_below_20 = subtracted_features.loc[subtracted_features['IICP Data'] <= 20]
-subtracted_above_20 = subtracted_features.loc[subtracted_features['IICP Data'] >= 20]
+proximal_below_20 = proximal_features.loc[proximal_features['IICP'] <= 20]
+proximal_above_20 = proximal_features.loc[proximal_features['IICP'] >= 20]
 
 features = distal_below_20.columns[0:len(distal_below_20.columns)-1]
 
 if run_boxplots == True:
     for column in range(len(features)):
-        boxplot_data = [proximal_below_20[features[column]].tolist(), proximal_above_20[features[column]].tolist(), subtracted_below_20[features[column]].tolist(), subtracted_above_20[features[column]].tolist(), distal_below_20[features[column]].tolist(), distal_above_20[features[column]].tolist()]
+        boxplot_data = [proximal_below_20[features[column]].tolist(), proximal_above_20[features[column]].tolist(), distal_below_20[features[column]].tolist(), distal_above_20[features[column]].tolist()]
         
         #fig = plt.figure()
         plt.subplot(4,3,column+1)
@@ -136,8 +123,6 @@ if run_mann == True:
     plt.show()
 
     for column in range(len(features)):
-        below_data = subtracted_below_20[features[column]]
-        above_data = subtracted_above_20[features[column]]
         subtracted_statistic, subtracted_pvalue = stats.mannwhitneyu(below_data.tolist(), above_data.tolist())
         boxplot_data = [below_data.tolist(), above_data.tolist()]
 
@@ -177,12 +162,11 @@ if run_kruskal == True:
     for column in range(len(features)):
 
         proximal_below_data = proximal_below_20[features[column]].tolist()
-        subtracted_below_data = subtracted_below_20[features[column]].tolist()
         distal_below_data = distal_below_20[features[column]].tolist()
 
-        below_statistic, below_pvalue = stats.kruskal(proximal_below_data, subtracted_below_data, distal_below_data)
+        below_statistic, below_pvalue = stats.kruskal(proximal_below_data, distal_below_data)
 
-        boxplot_data = [proximal_below_data, subtracted_below_data, distal_below_data]
+        boxplot_data = [proximal_below_data, distal_below_data]
 
         plt.subplot(4,3,column+1)
         plt.boxplot(boxplot_data, showfliers=False)
@@ -210,7 +194,6 @@ if run_kruskal == True:
     for column in range(len(features)):
 
         proximal_above_data = proximal_above_20[features[column]].tolist()
-        subtracted_above_data = subtracted_above_20[features[column]].tolist()
         distal_above_data = distal_above_20[features[column]].tolist()
 
         above_statistic, above_pvalue = stats.kruskal(proximal_above_data, subtracted_above_data, distal_above_data)
@@ -246,11 +229,6 @@ if run_norm_test == True:
     plt.show()
 
     proximal_features.hist(bins=100)
-    manager = plt.get_current_fig_manager()
-    manager.window.showMaximized()
-    plt.show()
-
-    subtracted_features.hist(bins = 100)
     manager = plt.get_current_fig_manager()
     manager.window.showMaximized()
     plt.show()

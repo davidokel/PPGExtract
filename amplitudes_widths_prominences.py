@@ -4,10 +4,14 @@ import scipy.signal as sp
 import data_methods
 
 def get_amplitudes_widths_prominences(data,fs,visualise=0, debug = 0):
+    
     peaks = data_methods.get_peaks(data, fs) # Given data as input and frequency of data, find the locations of the peaks
+
+    data = 1 + data
 
     # Plotting used for debugging
     if debug == 1:
+        plt.title("Widths and Prominences")
         plt.plot(data)
         plt.plot(peaks, data[peaks], "x")
         plt.show()
@@ -17,9 +21,10 @@ def get_amplitudes_widths_prominences(data,fs,visualise=0, debug = 0):
     half_widths = []
 
     # Simplified quality assessment, if there are less peaks than 1/4 of the data length (in seconds) then don't extract features
-    seconds = int((len(data)/fs)*0.25)
+    #seconds = int((len(data)/fs)*0.25)
+    #if (len(peaks) > seconds) == True:
 
-    if (len(peaks) > seconds) == True:
+    if len(peaks) != 0:
         # Calculating the prominences and half_widths of the peaks
         prominences.append((sp.peak_prominences(data, peaks)[0]).tolist())
         prominences = [item for sublist in prominences for item in sublist] # Flattening the list of lists into a list of values

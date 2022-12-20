@@ -21,13 +21,20 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0, debug = 0):
 
     second_derivative_ratio = 0
 
-    seconds = int((len(data)/fs)*0.25) # Simplified quality assessment, if there are less peaks than 1/4 of the data length (in seconds) then don't extract features
-    if (len(peaks) > seconds) == True:
+    #seconds = int((len(data)/fs)*0.25) # Simplified quality assessment, if there are less peaks than 1/4 of the data length (in seconds) then don't extract features
+    #if (len(peaks) > seconds) == True:
+
+    if len(peaks) != 0:
         peak_points = data_methods.get_onsets(data, peaks) # Given the data and the peak locations, get the onset locations
         
         # Printing and plotting used for debugging
         if debug == 1:
-            for key in peak_points:
+            plt.title("Upslopes, downslopes, rise times, decay times, AUC, AUC ratios")
+            plt.plot(data)
+            plt.plot(peaks, data[peaks], "x")
+            plt.show()
+
+            """for key in peak_points:
                 print("Peak: ", key)
                 print("Onset: ", peak_points[key]["Pre_Peak"])
                 print("Peak: ", peak_points[key]["Peak"])
@@ -39,7 +46,7 @@ def get_upslopes_downslopes_rise_times_auc(data,fs,visualise=0, debug = 0):
                 plt.plot(peak_points[key]["Pre_Peak"], data[peak_points[key]["Pre_Peak"]], "x")
                 plt.plot(peak_points[key]["Peak"], data[peak_points[key]["Peak"]], "x")
                 plt.plot(peak_points[key]["Post_Peak"], data[peak_points[key]["Post_Peak"]], "x")
-                plt.show()
+                plt.show()"""
 
         for key in peak_points:
             peak_loc = peak_points[key]["Peak"]
