@@ -67,8 +67,8 @@ if run_boxplots == True:
 
     plt.subplots_adjust(wspace=0.3, hspace=1)
     plt.suptitle("Boxplots of features for ICP < 20 and ICP > 20 (Proximal, Distal and Subtracted data)", fontsize=15)
-    manager = plt.get_current_fig_manager()
-    manager.window.showMaximized()
+    #manager = plt.get_current_fig_manager()
+    #manager.window.showMaximized()
     plt.show()
 
 # Mann-Whitney test for each feature (above and below 20 ICP) for each dataset
