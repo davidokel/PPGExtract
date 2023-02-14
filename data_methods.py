@@ -1,50 +1,11 @@
-from turtle import color
 import pandas as pd
 import numpy as np
 import scipy.signal as sp
 import math
-import matplotlib.pyplot as plt
-import random as rd
-from upslopes_downslopes_rise_times_auc import *
-from amplitudes_widths_prominences import *
-import scipy.stats as stats
-from sqis import get_sqis
 from scipy.interpolate import interp1d
-
-def run_test(data_df, window_seconds, fs, number_of_examples):
-    columns = data_df.columns
-
-    window_size = (window_seconds*fs)
-
-    for i in range(number_of_examples): 
-        random_patient = rd.randint(0,len(columns)-1)
-
-        data = data_df[data_df.columns[random_patient]]
-
-        data = data.dropna().to_numpy()
-
-        data_flipped = -data
-
-        if len(data_flipped) !=0:
-            random_chunk_start = rd.randint(0,len(data_flipped)-1)
-            random_chunk_end = random_chunk_start + window_size
-            data_chunk = data_flipped[random_chunk_start:random_chunk_end]
-
-            plt.title("Patient " + str(random_patient) + " Chunk " + str(random_chunk_start) + ":" + str(random_chunk_start+window_size))
-            plt.plot(data_chunk)
-            manager = plt.get_current_fig_manager()
-            manager.window.showMaximized()
-            plt.show()
-            
-            chunk_filtered = normalise_data(data_chunk, fs)
-
-            amplitudes, half_widths = get_amplitudes_widths_prominences(chunk_filtered,fs=100,visualise=1, debug=0)
-            upslope, downslope, rise_time, decay_time, auc, sys_auc, dia_auc, auc_ratio, second_derivative_ratio = get_upslopes_downslopes_rise_times_auc(chunk_filtered,fs=100,visualise=1, debug=0)
-            get_sqis(data_chunk, fs, visualise=1)
 
 # Removing values above a certain threshold from dataframe based on the gold_standard
 def remove_values(gold_standard, distal, proximal, upper=60, lower=0):
-    
     # Iterate over columns of the gold_standard dataframe
     for column in range(len(gold_standard.columns)):
         gold_standard_data = np.array(gold_standard.iloc[:,column])
