@@ -4,6 +4,10 @@ import scipy.signal as sp
 import data_methods
 
 def get_prominences(data, fs, visualise=0, debug=0):
+    data = data.dropna().to_numpy()        
+    # Normalise the distal_data and proximal_data using the normalise_data
+    data = data_methods.normalise_data(data, 100)
+    
     # Calling the get_peaks function from data_methods.py to find the peaks in the data
     peaks = data_methods.get_peaks(data, fs)
 

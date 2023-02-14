@@ -6,6 +6,10 @@ from scipy.stats import linregress
 from scipy.integrate import trapz
 
 def get_slopes(data,fs,visualise=0, debug = 0):
+    data = data.dropna().to_numpy()        
+    # Normalise the distal_data and proximal_data using the normalise_data
+    data = data_methods.normalise_data(data, 100)
+    
     # Calling the get_peaks function from data_methods.py to find the peaks in the data
     peaks = data_methods.get_peaks(data, fs) # Given the data and the sampling frequency, get the peak locations
     data_scaled = data_methods.data_scaler(data) # Scale the data to be between 0 and 1 (Used for plotting)

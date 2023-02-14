@@ -4,45 +4,6 @@ import scipy.signal as sp
 import math
 from scipy.interpolate import interp1d
 
-# Removing values above a certain threshold from dataframe based on the gold_standard
-def remove_values(gold_standard, distal, proximal, upper=60, lower=0):
-    # Iterate over columns of the gold_standard dataframe
-    for column in range(len(gold_standard.columns)):
-        gold_standard_data = np.array(gold_standard.iloc[:,column])
-        distal_data = np.array(distal.iloc[:,column])
-        proximal_data = np.array(proximal.iloc[:,column])
-
-        upper_i = np.where(gold_standard_data > upper)[0]
-        gold_standard_data = np.delete(gold_standard_data,upper_i)
-        gold_standard.iloc[:,column] = pd.Series(gold_standard_data)
-
-        distal_data = np.delete(distal_data,upper_i)
-        distal.iloc[:,column] = pd.Series(distal_data)
-
-        proximal_data = np.delete(proximal_data,upper_i)
-        proximal.iloc[:,column] = pd.Series(proximal_data)
-
-        lower_i = np.where(gold_standard_data < lower)[0]
-        gold_standard_data = np.delete(gold_standard_data,lower_i)
-        gold_standard.iloc[:,column] = pd.Series(gold_standard_data)
-
-        distal_data = np.delete(distal_data,lower_i)
-        distal.iloc[:,column] = pd.Series(distal_data)
-
-        proximal_data = np.delete(proximal_data,lower_i)
-        proximal.iloc[:,column] = pd.Series(proximal_data)
-
-    print("Defined thresholds applied and values removed")
-    return gold_standard, distal, proximal
-        
-#########################
-# LOADING DATA FROM CSV #
-#########################
-def load_csv(path):
-    data = pd.read_csv(path)
-    data.drop(data.columns[[0]],axis=1,inplace=True)
-    return data
-
 def normalise_data(data,fs):
     sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
     ac = sp.sosfiltfilt(sos_ac, data, axis= -1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
@@ -58,11 +19,6 @@ def band_pass_filter(data, order, fs, low_cut, high_cut):
     sos = sp.butter(order, [low_cut, high_cut], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
     filtered_data = sp.sosfiltfilt(sos, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
     return filtered_data
-
-def cosine_rule(a, b, c):
-    angle_c = math.acos((c**2+a**2-b**2)/(2*c*a))
-
-    return angle_c
 
 def data_scaler(data):
     min_data = min(data)
@@ -315,11 +271,6 @@ def get_envelope(data,seconds,fs):
     
     if distance < 1:
         distance = 1
-
-    """height = np.percentile(data,70)
-    peaks,_ = sp.find_peaks(data, distance = distance, height = height)
-    height = np.percentile(-data,70)
-    troughs,_ = sp.find_peaks(-data, distance = distance, height = height)"""
 
     peaks = get_peaks(data, 100) 
     troughs = get_peaks(-data, 100)
