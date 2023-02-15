@@ -11,6 +11,7 @@ def get_aucs(data,fs,visualise=0, debug = 0):
 
     # Calling the get_peaks function from data_methods.py to find the peaks in the data
     peaks = data_methods.get_peaks(data, fs) # Given the data and the sampling frequency, get the peak locations
+    #peak_points, peaks, _ = data_methods.get_onsets_v2(data,100,debug=False)
     data_scaled = data_methods.data_scaler(data) # Scale the data to be between 0 and 1 (Used for plotting)
 
     auc = []

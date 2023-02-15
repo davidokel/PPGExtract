@@ -3,6 +3,8 @@ import numpy as np
 import scipy.signal as sp
 import math
 from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
+
 
 def normalise_data(data,fs):
     sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
@@ -125,8 +127,6 @@ def get_peaks(data,fs):
             del peak_locs[0]
             del peak_locs[-1]
 
-        #peaks = peak_locs
-
         prominences_all = (sp.peak_prominences(data, peak_locs)[0]).tolist()
         widths_all = sp.peak_widths(data, peak_locs)[0].tolist()
         
@@ -186,6 +186,170 @@ def get_peaks(data,fs):
                 peaks.append(math.floor(peak_locs[peak]))
     
     return peaks
+
+def get_onsets_v2(data,fs=100,debug=False):
+    # Normalising the data
+    data_raw = normalise_data(data,fs)
+    data = normalise_data(data,fs)
+
+    # Filter data using savgol filter
+    data = sp.savgol_filter(data, 51, 3)
+
+    # Calculate the first and second derivative of the data
+    data_first_derivative = np.diff(data)
+    data_second_derivative = np.diff(data_first_derivative)
+
+    # Add a zero to the first and second derivative as the first and second derivative are one index shorter than the original data
+    data_first_derivative = np.insert(data_first_derivative, 0, 0)
+    data_second_derivative = np.insert(data_second_derivative, 0, 0)
+    data_second_derivative = np.insert(data_second_derivative, 0, 0)
+
+    # Compute the element-wise difference between the two arrays
+    diff = data_first_derivative - data_second_derivative
+    
+    # Identify the indices where the sign of the difference changes
+    sign_change = np.where(np.diff(np.sign(diff)))[0]
+    
+    # Add one to the indices to account for the offset introduced by np.diff
+    crossings = sign_change + 1
+
+    # With an fs of 100Hz calculate what 220bpm equates to in terms of samples
+    bpm_220 = int((60/220)*fs)
+
+    # Remove any crossings that are less than 220bpm apart
+    crossings = [i for i in crossings if i > bpm_220]
+
+    # Finding the peaks from the crossings
+    peaks = []
+    troughs = []
+    notches = []
+
+    # If there are no crossings then return an empty list
+    if len(crossings) == 0:
+        return peaks
+    else:
+        # Iterate over the crossing points starting from the second crossing and ending at the second to last crossing
+        for i in range(1, len(crossings)-1):
+            pre_data_slope = get_signal_slopes(data, crossings[i-1], crossings[i])
+            post_data_slope = get_signal_slopes(data, crossings[i], crossings[i+1])
+
+            # If the slope of the data before the crossing is positive and the slope of the data after the crossing is negative then the crossing is a peak
+            if pre_data_slope > 0 and post_data_slope < 0:
+                peaks.append(crossings[i])
+
+            # If the slope of the data before the crossing is negative and the slope of the data after the crossing is positive then the crossing is a trough
+            if pre_data_slope < 0 and post_data_slope > 0:
+                troughs.append(crossings[i])
+
+    # Go through the peaks and troughs and find the associated local maxima and minima
+    peaks_raw = []
+    troughs_raw = []
+
+    search_space = int(fs * 0.5)
+
+    # If there are no peaks then return an empty list
+    if len(peaks) == 0:
+        return peaks
+    else:
+        # Iterate over the peaks and troughs
+        for i in range(0, len(peaks)):
+            # Find the local maxima and minima based on the search space ensuring that the list doesn't go out of bounds
+
+            # Define the exploration space for the peak
+            if peaks[i] - search_space < 0:
+                peak_explore_start = 0
+            else:
+                peak_explore_start = peaks[i] - search_space
+                
+            if peaks[i] + search_space > len(data_raw):
+                peak_explore_end = len(data_raw)
+            else:
+                peak_explore_end = peaks[i] + search_space
+
+            # Find the local maxima and minima
+            peak_raw = np.argmax(data_raw[peak_explore_start:peak_explore_end]) + peak_explore_start
+
+            # Add the local maxima and minima to the list
+            peaks_raw.append(peak_raw)
+
+        for i in range(0, len(troughs)):
+            # Define the exploration space for the trough
+            if troughs[i] - search_space < 0:
+                trough_explore_start = 0
+            else:
+                trough_explore_start = troughs[i] - search_space
+
+            if troughs[i] + search_space > len(data_raw):
+                trough_explore_end = len(data_raw)
+            else:
+                trough_explore_end = troughs[i] + search_space
+
+            trough_raw = np.argmin(data_raw[trough_explore_start:trough_explore_end]) + trough_explore_start
+            
+            troughs_raw.append(trough_raw)
+        
+    # Plot data
+    if debug:
+        plt.plot(data_raw)
+        # Plot all crossings as a vertical red dotted line
+        plt.vlines(crossings, data.min(), data.max(), color='r', linestyle='dotted')
+        # Plot the first and second derivatives
+        plt.plot(data_first_derivative)
+        plt.plot(data_second_derivative)
+        # Plot peaks as a green dot
+        plt.plot(peaks, data[peaks], "go")
+        # Plot troughs as a red dot
+        plt.plot(troughs, data[troughs], "ro")
+        # Add a legend
+        plt.legend(['Data', 'First Derivative', 'Second Derivative', 'Crossings'])
+        plt.show()
+
+        # Plot the raw data
+        plt.plot(data_raw)
+        # Plot peaks as a green dot
+        plt.plot(peaks_raw, data_raw[peaks_raw], "go")
+        # Plot troughs as a red dot
+        plt.plot(troughs_raw, data_raw[troughs_raw], "ro")
+        # Add a legend
+        plt.legend(['Data', 'Peaks', 'Troughs'])
+        plt.show()
+
+    # Create a dictionary to store each peak and its associated troughs
+    peak_trough_dict = {}
+
+    # Iterate over the peaks
+    for i in range(0, len(peaks_raw)):
+        # The key of the dictionary is "Peak" followed by the index of the peak
+        key = "Peak" + str(i)
+
+        # For each key there are 3 variables stored in a list
+        #[key]["Peak"] - The index of the current peak
+        #[key]["Pre_Peak"] - The index of the trough closest to but less than the index of the peak
+        #[key]["Post_Peak"] - The index of the trough closest to but greater than the index of the peak
+
+        # Find the onset
+        pre_peak = min(troughs_raw, key=lambda x:abs(x-peaks_raw[i]))
+
+        # Find the offset
+        post_peak = max(troughs_raw, key=lambda x:abs(x-peaks_raw[i]))
+
+        # Add the peak and its associated troughs to the dictionary
+        peak_trough_dict[key] = {"Peak": peaks_raw[i], "Pre_Peak": pre_peak, "Post_Peak": post_peak}
+            
+
+    return peak_trough_dict, peaks_raw, troughs_raw
+
+
+def get_signal_slopes(data,index1,index2):
+        # Compute the difference in y-values and x-values
+    y_diff = data[index2] - data[index1]
+    x_diff = index2 - index1
+    
+    # Compute the slope
+    slope = y_diff / x_diff
+    
+    return slope
+
 
 def get_onsets(data,peak_locs,fs=100):
     data = (data - data.min())/(data.max() - data.min())
