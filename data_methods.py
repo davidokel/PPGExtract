@@ -223,6 +223,7 @@ def get_onsets_v2(data,fs=100,debug=False):
     peaks = []
     troughs = []
     notches = []
+    peak_points = {}
 
     # If there are no crossings then return an empty list
     if len(crossings) == 0:
@@ -245,7 +246,7 @@ def get_onsets_v2(data,fs=100,debug=False):
     peaks_raw = []
     troughs_raw = []
 
-    search_space = int(fs * 0.5)
+    search_space = int(fs * 0.35)
 
     # If there are no peaks then return an empty list
     if len(peaks) == 0:
@@ -287,58 +288,55 @@ def get_onsets_v2(data,fs=100,debug=False):
             trough_raw = np.argmin(data_raw[trough_explore_start:trough_explore_end]) + trough_explore_start
             
             troughs_raw.append(trough_raw)
-        
-    # Plot data
+
+    # Plot data, peaks and troughs
     if debug:
         plt.plot(data_raw)
-        # Plot all crossings as a vertical red dotted line
-        plt.vlines(crossings, data.min(), data.max(), color='r', linestyle='dotted')
-        # Plot the first and second derivatives
-        plt.plot(data_first_derivative)
-        plt.plot(data_second_derivative)
-        # Plot peaks as a green dot
-        plt.plot(peaks, data[peaks], "go")
-        # Plot troughs as a red dot
-        plt.plot(troughs, data[troughs], "ro")
-        # Add a legend
-        plt.legend(['Data', 'First Derivative', 'Second Derivative', 'Crossings'])
-        plt.show()
-
-        # Plot the raw data
-        plt.plot(data_raw)
-        # Plot peaks as a green dot
         plt.plot(peaks_raw, data_raw[peaks_raw], "go")
-        # Plot troughs as a red dot
         plt.plot(troughs_raw, data_raw[troughs_raw], "ro")
-        # Add a legend
-        plt.legend(['Data', 'Peaks', 'Troughs'])
         plt.show()
 
-    # Create a dictionary to store each peak and its associated troughs
-    peak_trough_dict = {}
+    # If the first detected element is a peak not a trough then remove it
+    if peaks_raw[0] < troughs_raw[0]:
+        peaks_raw.pop(0)
+    
+    # If the last detected element is a peak not a trough then remove it
+    if peaks_raw[-1] > troughs_raw[-1]:
+        peaks_raw.pop(-1)
 
     # Iterate over the peaks
-    for i in range(0, len(peaks_raw)):
-        # The key of the dictionary is "Peak" followed by the index of the peak
-        key = "Peak" + str(i)
+    for peak in range(0, len(peaks_raw)):
+        # Define the key
+        key = "Peak_"+str(peaks_raw[i])
 
-        # For each key there are 3 variables stored in a list
-        #[key]["Peak"] - The index of the current peak
-        #[key]["Pre_Peak"] - The index of the trough closest to but less than the index of the peak
-        #[key]["Post_Peak"] - The index of the trough closest to but greater than the index of the peak
+        pre_peak_candidates = [trough for trough in troughs_raw if trough < peaks_raw[peak]]
+        post_peak_candidates = [trough for trough in troughs_raw if trough > peaks_raw[peak]]
 
-        # Find the onset
-        pre_peak = min(troughs_raw, key=lambda x:abs(x-peaks_raw[i]))
+        pre_peak = max(pre_peak_candidates)
+        post_peak = min(post_peak_candidates)
 
-        # Find the offset
-        post_peak = max(troughs_raw, key=lambda x:abs(x-peaks_raw[i]))
-
-        # Add the peak and its associated troughs to the dictionary
-        peak_trough_dict[key] = {"Peak": peaks_raw[i], "Pre_Peak": pre_peak, "Post_Peak": post_peak}
+        # If not the first or last peak
+        if peak != 0 and peak != len(peaks_raw)-1:
+            # Handling if start point is less than previous post peak point
+            if pre_peak > peak_points["Peak_"+str(peak-1)]["Post_Peak"]:
+                peak_points[key]["Pre_Peak"] = pre_peak
             
+            if post_peak < peak_points["Peak_"+str(peak+1)]["Pre_Peak"]:
+                peak_points[key]["Post_Peak"] = post_peak
 
-    return peak_trough_dict, peaks_raw, troughs_raw
+            # If the dictionary under the current key includes the pre_peak and post_peak then add the peak to the dictionary
+            if "Pre_Peak" in peak_points[key].keys() and "Post_Peak" in peak_points[key].keys():
+                peak_points[key]["Peak"] = peaks_raw[peak]
 
+    # Create and return a list of the peaks from the dictionary
+    peaks = [peak_points[i]["Peak"] for i in peak_points.keys()]
+    # Create and return a list of the pre_peaks and post_peaks from the dictionary
+    pre_peaks = [peak_points[i]["Pre_Peak"] for i in peak_points.keys()]
+    post_peaks = [peak_points[i]["Post_Peak"] for i in peak_points.keys()]
+    # Combine the pre_peaks and post_peaks into a single list
+    troughs = pre_peaks + post_peaks
+
+    return peak_points, peaks, troughs
 
 def get_signal_slopes(data,index1,index2):
         # Compute the difference in y-values and x-values
@@ -349,7 +347,6 @@ def get_signal_slopes(data,index1,index2):
     slope = y_diff / x_diff
     
     return slope
-
 
 def get_onsets(data,peak_locs,fs=100):
     data = (data - data.min())/(data.max() - data.min())
@@ -436,8 +433,10 @@ def get_envelope(data,seconds,fs):
     if distance < 1:
         distance = 1
 
-    peaks = get_peaks(data, 100) 
-    troughs = get_peaks(-data, 100)
+    data = normalise_data(data,fs)
+
+    _,peaks,troughs = get_onsets_v2(data, 100) 
+    #troughs = get_onsets_v2(-data, 100)
 
     if len(peaks) > 4 and len(troughs) > 4:
         u_p = interp1d(peaks, data[peaks], kind = 'cubic', bounds_error=False, fill_value = np.median(data[peaks]))
@@ -455,5 +454,15 @@ def get_envelope(data,seconds,fs):
         envelope_difference = upper_envelope - lower_envelope
     else:
         envelope_difference = []
+
+    # Plot the data and the envelopes
+    plt.plot(data)
+    plt.plot(upper_envelope)
+    plt.plot(lower_envelope)
+    # Plot the peaks and troughs
+    plt.plot(peaks, data[peaks], "x")
+    plt.plot(troughs, data[troughs], "x")
+    plt.show()
+
 
     return upper_envelope, lower_envelope, peaks, troughs, envelope_difference
