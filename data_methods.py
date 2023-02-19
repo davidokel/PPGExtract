@@ -32,7 +32,9 @@ def data_scaler(data):
     data = data + scaling_factor
     return data
 
-def find_anomalies(data, upper, lower):
+def find_anomalies(data):
+    upper, lower, envelope_difference = get_envelope(data) # Get the upper and lower envelope of the data
+
     anomalies = {} # Defining a dictionary to store the detected anomalies of the signal
     anomly_segment_trigger = 1
     anomaly_count = 1
@@ -189,8 +191,8 @@ def get_peaks(data,fs):
 
 def get_onsets_v2(data,fs=100,debug=False):
     # Normalising the data
-    data_raw = normalise_data(data,fs)
-    data = normalise_data(data,fs)
+    data_raw = data
+    #data = normalise_data(data,fs)
 
     # Filter data using savgol filter
     data = sp.savgol_filter(data, 51, 3)
@@ -242,99 +244,194 @@ def get_onsets_v2(data,fs=100,debug=False):
             if pre_data_slope < 0 and post_data_slope > 0:
                 troughs.append(crossings[i])
 
+    if debug:
+        plt.plot(data)
+        plt.title("CLASSIFY PEAKS AND TROUGHS")
+        plt.plot(peaks, data[peaks], "gx")
+        plt.plot(troughs, data[troughs], "rx")
+        plt.show()
+
     # Go through the peaks and troughs and find the associated local maxima and minima
     peaks_raw = []
     troughs_raw = []
 
-    search_space = int(fs * 0.35)
+    search_space = int(fs*0.35)
 
-    # If there are no peaks then return an empty list
-    if len(peaks) == 0:
-        return peaks
-    else:
-        # Iterate over the peaks and troughs
-        for i in range(0, len(peaks)):
-            # Find the local maxima and minima based on the search space ensuring that the list doesn't go out of bounds
-
-            # Define the exploration space for the peak
-            if peaks[i] - search_space < 0:
-                peak_explore_start = 0
-            else:
-                peak_explore_start = peaks[i] - search_space
-                
-            if peaks[i] + search_space > len(data_raw):
-                peak_explore_end = len(data_raw)
-            else:
-                peak_explore_end = peaks[i] + search_space
-
-            # Find the local maxima and minima
-            peak_raw = np.argmax(data_raw[peak_explore_start:peak_explore_end]) + peak_explore_start
-
-            # Add the local maxima and minima to the list
-            peaks_raw.append(peak_raw)
-
-        for i in range(0, len(troughs)):
-            # Define the exploration space for the trough
-            if troughs[i] - search_space < 0:
-                trough_explore_start = 0
-            else:
-                trough_explore_start = troughs[i] - search_space
-
-            if troughs[i] + search_space > len(data_raw):
-                trough_explore_end = len(data_raw)
-            else:
-                trough_explore_end = troughs[i] + search_space
-
-            trough_raw = np.argmin(data_raw[trough_explore_start:trough_explore_end]) + trough_explore_start
+    # Iterate over the peaks and troughs
+    for i in range(0, len(peaks)):
+        # Define the exploration space for the peak
+        if peaks[i] - search_space < 0:
+            peak_explore_start = 0
+        else:
+            peak_explore_start = peaks[i] - search_space
             
-            troughs_raw.append(trough_raw)
+        if peaks[i] + search_space > len(data_raw):
+            peak_explore_end = len(data_raw)
+        else:
+            peak_explore_end = peaks[i] + search_space
 
-    # Plot data, peaks and troughs
-    if debug:
-        plt.plot(data_raw)
-        plt.plot(peaks_raw, data_raw[peaks_raw], "go")
-        plt.plot(troughs_raw, data_raw[troughs_raw], "ro")
-        plt.show()
+        # Find the local maxima and minima
+        peak_raw = np.argmax(data_raw[peak_explore_start:peak_explore_end]) + peak_explore_start
 
-    # If the first detected element is a peak not a trough then remove it
-    if peaks_raw[0] < troughs_raw[0]:
+        # Add the local maxima and minima to the list
+        peaks_raw.append(peak_raw)
+
+    for i in range(0, len(troughs)):
+        # Define the exploration space for the trough
+        if troughs[i] - search_space < 0:
+            trough_explore_start = 0
+        else:
+            trough_explore_start = troughs[i] - search_space
+
+        if troughs[i] + search_space > len(data_raw):
+            trough_explore_end = len(data_raw)
+        else:
+            trough_explore_end = troughs[i] + search_space
+
+        trough_raw = np.argmin(data_raw[trough_explore_start:trough_explore_end]) + trough_explore_start
+        
+        troughs_raw.append(trough_raw)
+
+    while (len(peaks_raw) > 0 and len(troughs_raw) > 0) and (peaks_raw[0] < troughs_raw[0]):
+        # If the first detected element is a peak not a trough then remove it until the first detected element is a trough
         peaks_raw.pop(0)
-    
-    # If the last detected element is a peak not a trough then remove it
-    if peaks_raw[-1] > troughs_raw[-1]:
+        # Plot the data
+
+    # If the last detected element is a peak not a trough then remove it until the last detected element is a trough
+    while (len(peaks_raw) > 0 and len(troughs_raw) > 0) and (peaks_raw[-1] > troughs_raw[-1]):
         peaks_raw.pop(-1)
 
+    # Iterate over the troughs and the peaks, if there are more than one peaks between two troughs then remove the peaks that are not the local maxima
+    for i in range(0, len(troughs_raw)-1):
+        # Get the peaks between the current trough and the next trough
+        peaks_between_troughs = [peak for peak in peaks_raw if peak > troughs_raw[i] and peak < troughs_raw[i+1]]
+
+        # If there are more than one peaks between the current trough and the next trough
+        if len(peaks_between_troughs) > 1:
+            # Get the values of the data_raw at the peaks between the current trough and the next trough
+            peaks_between_troughs_values = [data_raw[peak] for peak in peaks_between_troughs]
+
+            # Get the index of the local maxima
+            local_maxima_index = np.argmax(peaks_between_troughs_values)
+
+            # Remove the peaks that are not the local maxima
+            for j, peak in enumerate(peaks_between_troughs):
+                if j != local_maxima_index:
+                    peaks_raw.remove(peak)
+
+    if debug:
+        plt.plot(data_raw)
+        plt.title("PRE-DICTIONARY")
+        plt.plot(peaks_raw, data_raw[peaks_raw], "gx")
+        plt.plot(troughs_raw, data_raw[troughs_raw], "rx")
+        plt.show()
+
     # Iterate over the peaks
-    for peak in range(0, len(peaks_raw)):
-        # Define the key
-        key = "Peak_"+str(peaks_raw[i])
+    if len(peaks_raw) != 0:
+        # Enumerate peaks_raw
+        for i, peak in enumerate(peaks_raw):
+            # If the peak is the first and only peak in peaks_raw and peak_points is empty
+            if i == 0 and len(peaks_raw) == 1 and len(peak_points) == 0:
+                # Get all troughs that are before the peak and after the peak
+                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
+                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
 
-        pre_peak_candidates = [trough for trough in troughs_raw if trough < peaks_raw[peak]]
-        post_peak_candidates = [trough for trough in troughs_raw if trough > peaks_raw[peak]]
+                # Check that there are pre and post peak troughs
+                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
+                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
+                    pre_peak = max(pre_peak_troughs)
+                    post_peak = min(post_peak_troughs)
 
-        pre_peak = max(pre_peak_candidates)
-        post_peak = min(post_peak_candidates)
+                    peak_points[i] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak}
+                else: 
+                    continue
 
-        # If not the first or last peak
-        if peak != 0 and peak != len(peaks_raw)-1:
-            # Handling if start point is less than previous post peak point
-            if pre_peak > peak_points["Peak_"+str(peak-1)]["Post_Peak"]:
-                peak_points[key]["Pre_Peak"] = pre_peak
+            # If the peak is the first peak but not the last peak in peaks_raw and peak_points is empty
+            elif i == 0 and len(peaks_raw) != 1 and len(peak_points) == 0:
+                # Get all troughs that are before the peak and after the peak
+                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
+                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
+
+                # Check that there are pre and post peak troughs
+                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
+                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
+                    pre_peak = max(pre_peak_troughs)
+                    post_peak = min(post_peak_troughs)
+
+                    if post_peak < peaks_raw[i+1]:
+                        peak_points[i] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak}
+                else: 
+                    continue
+
+            # If the peak is not the first nor last peak in peaks_raw and peak_points is not empty
+            elif i != 0 and i != len(peaks_raw)-1 and len(peak_points) != 0:
+                # Get all troughs that are before the peak and after the peak
+                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
+                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
+
+                # Check that there are pre and post peak troughs
+                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
+                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
+                    pre_peak = max(pre_peak_troughs)
+                    post_peak = min(post_peak_troughs)
+
+                    # Get peak_points keys
+                    peak_points_keys = list(peak_points.keys())
+                    # Get the last key in peak_points_keys
+                    last_key = peak_points_keys[-1]
+                    
+                    # Ensure that the pre_peak is >= the previous peak's post_peak and the post_peak is not greater than the next peak
+                    if pre_peak >= peak_points[last_key]["Post_peak"] and post_peak < peaks_raw[i+1]:
+                        # Add the peaks and troughs to the dictionary
+                        peak_points[i] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak}
+                else:
+                    continue
+
+            # If the peak is the last peak in peaks_raw and peak_points is not empty
+            elif i == len(peaks_raw)-1 and len(peak_points) != 0:
+                # Get all troughs that are before the peak and after the peak
+                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
+                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
+
+                # Check that there are pre and post peak troughs
+                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
+                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
+                    pre_peak = max(pre_peak_troughs)
+                    post_peak = min(post_peak_troughs)
+
+                    # Get peak_points keys
+                    peak_points_keys = list(peak_points.keys())
+                    # Get the last key in peak_points_keys
+                    last_key = peak_points_keys[-1]
+                    
+                    # Ensure that the pre_peak is >= the previous peak's post_peak
+                    if pre_peak >= peak_points[last_key]["Post_peak"]:
+                        # Add the peaks and troughs to the dictionary
+                        peak_points[i] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak}
+                else:
+                    continue
+
+        # Get all the pre and post peak points from the dictionary and store them in a list
+        troughs = []
+        peaks = []
+        for key in peak_points:
+            troughs.append(peak_points[key]["Pre_peak"])
+            troughs.append(peak_points[key]["Post_peak"])
             
-            if post_peak < peak_points["Peak_"+str(peak+1)]["Pre_Peak"]:
-                peak_points[key]["Post_Peak"] = post_peak
+            # Get the index of the maximum value between the pre_peak and post_peak points
+            corrected_peak = np.argmax(data_raw[peak_points[key]["Pre_peak"]:peak_points[key]["Post_peak"]]) + peak_points[key]["Pre_peak"]
+            
+            # Change the peak value in the dictionary to the maximum value between the pre_peak and post_peak
+            peak_points[key]["Peak"] = corrected_peak
 
-            # If the dictionary under the current key includes the pre_peak and post_peak then add the peak to the dictionary
-            if "Pre_Peak" in peak_points[key].keys() and "Post_Peak" in peak_points[key].keys():
-                peak_points[key]["Peak"] = peaks_raw[peak]
+            peaks.append(peak_points[key]["Peak"])
 
-    # Create and return a list of the peaks from the dictionary
-    peaks = [peak_points[i]["Peak"] for i in peak_points.keys()]
-    # Create and return a list of the pre_peaks and post_peaks from the dictionary
-    pre_peaks = [peak_points[i]["Pre_Peak"] for i in peak_points.keys()]
-    post_peaks = [peak_points[i]["Post_Peak"] for i in peak_points.keys()]
-    # Combine the pre_peaks and post_peaks into a single list
-    troughs = pre_peaks + post_peaks
+        # Plot the data and the peaks and troughs
+        if debug:
+            plt.plot(data_raw)
+            plt.plot(peaks, data_raw[peaks], "go")
+            plt.plot(troughs, data_raw[troughs], "ro")
+            plt.show()
 
     return peak_points, peaks, troughs
 
@@ -424,7 +521,7 @@ def get_onsets(data,peak_locs,fs=100):
                 peak_points["Peak_"+str(peak)]["Post_Peak"] = min_post
                 pre_peaks.append(min_pre)
                 post_peaks.append(min_post)
-                
+   
         return peak_points
 
 def get_envelope(data,seconds,fs):
@@ -465,4 +562,4 @@ def get_envelope(data,seconds,fs):
     plt.show()
 
 
-    return upper_envelope, lower_envelope, peaks, troughs, envelope_difference
+    return upper_envelope, lower_envelope, envelope_difference

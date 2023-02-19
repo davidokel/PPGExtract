@@ -9,7 +9,7 @@ def get_prominences(data, fs, visualise=0, debug=0):
     data = data_methods.normalise_data(data, 100)
     
     # Calling the get_peaks function from data_methods.py to find the peaks in the data
-    peaks = data_methods.get_peaks(data, fs)
+    peak_points, peaks, troughs = data_methods.get_onsets_v2(data, fs, debug=debug)
 
     # Forcing positive values by adding 1
     data = 1 + data

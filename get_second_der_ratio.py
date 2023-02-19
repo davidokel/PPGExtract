@@ -11,7 +11,7 @@ def get_second_der_ratio(data,fs):
     data = data_methods.normalise_data(data, 100)
 
     # Calling the get_peaks function from data_methods.py to find the peaks in the data
-    peaks = data_methods.get_peaks(data, fs) # Given the data and the sampling frequency, get the peak locations
+    peak_points, peaks, troughs = data_methods.get_onsets_v2(data, fs)
 
     second_derivative_ratio = 0
 
