@@ -6,6 +6,7 @@ import pickle
 from feature_extraction_code.features import get_features
 from signal_quality_classifiers.dictionary_formatter import dict_to_df
 from signal_quality_classifiers.classify_pulses import get_pulse_predictions
+import datetime
 
 def get_data_sqis(dataset, fs, window_size, save_name, visualise = 0, debug = 0):
     # Isolating the data column
@@ -50,12 +51,19 @@ def get_data_sqis(dataset, fs, window_size, save_name, visualise = 0, debug = 0)
         peaks_list[peaks] = 1
         troughs_list[troughs] = 1
 
-    with open('DICTIONARY_UNANNOTATED_'+ save_name + '.pkl', 'wb') as f:
+        break
+
+    # Get the date and time and use to save the data
+    # Get the current date and month
+    date = datetime.datetime.now().strftime("%d_%m_%Y")
+    print(date)
+
+    with open('data/features/PULSE_FEATURES_'+ date + '.pkl', 'wb') as f:
         pickle.dump(pulses, f)
 
     dataset["Peaks"] = peaks_list
     dataset["Troughs"] = troughs_list
-    dataset.to_csv(save_name+".csv")
+    dataset.to_csv(save_name+"_"+date+".csv")
 
 
 
