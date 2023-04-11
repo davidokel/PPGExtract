@@ -1,21 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-import data_methods
+import feature_extraction_code.data_methods as data_methods
 from scipy.stats import linregress
 from scipy.integrate import trapz
 
-def get_second_der_ratio(data,fs):
-    data = data.dropna().to_numpy()        
-    # Normalise the distal_data and proximal_data using the normalise_data
-    data = data_methods.normalise_data(data, 100)
-
-    # Calling the get_peaks function from data_methods.py to find the peaks in the data
-    peak_points, peaks, troughs = data_methods.get_onsets_v2(data, fs)
+def get_second_der_ratio(pulse_data):
+    data = pulse_data["norm_pulse_data"]
+    peak = pulse_data["Relative_peak"]
 
     second_derivative_ratio = 0
 
-    if len(peaks) != 0:
+    if peak:
         second_derivative = np.diff(np.diff(data))
         max_value = max(second_derivative)
         min_value = min(second_derivative)
