@@ -42,12 +42,6 @@ def get_sqis(pulse_dictionary, fs, debug = False):
             plt.title("Normalised Pulse Data")
             plt.plot(norm_pulse_data)
             plt.show()
-            print('Skewness: ', skew)
-            print('Kurtosis: ', kurt)
-            print('SNR: ', snr)
-            print('ZCR: ', zcr)
-            print('Entropy: ', ent)
-            print("PI: ", pi)
 
     return pulse_dictionary
 

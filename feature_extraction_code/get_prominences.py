@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-import feature_extraction_code.data_methods as data_methods
+import support_code.data_methods as data_methods
 
 def get_prominences(pulse_data, visualise=0):
     data = pulse_data["norm_pulse_data"]

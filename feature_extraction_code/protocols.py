@@ -1,14 +1,13 @@
 import math
 from feature_extraction_code.sqis import get_sqis
-from feature_extraction_code.data_methods import get_onsets_v2
+from support_code.pulse_detection import get_pulses
 import numpy as np
 import pickle
 from feature_extraction_code.features import get_features
-from signal_quality_classifiers.dictionary_formatter import dict_to_df
 from signal_quality_classifiers.classify_pulses import get_pulse_predictions
 import datetime
 
-def get_data_sqis(dataset, fs, window_size, save_name, visualise = 0, debug = 0):
+def extraction_protocol(dataset, fs, window_size, save_name, visualise = 0, debug = 0):
     # Isolating the data column
     data = dataset["Data"]
 
@@ -27,38 +26,36 @@ def get_data_sqis(dataset, fs, window_size, save_name, visualise = 0, debug = 0)
         if end > len(data):
             end = len(data)
 
-        peak_points, peaks, troughs = get_onsets_v2(list(data[start:end]), fs, visualise = visualise, debug = debug)
+        peak_points, peaks, troughs = get_pulses(list(data[start:end]), fs, visualise = visualise, debug = debug)
         peak_points = {key + start: value for key, value in peak_points.items()}
         for key in peak_points:
             peak_points[key]["Peak"] += start
             peak_points[key]["Pre_peak"] += start
             peak_points[key]["Post_peak"] += start
         
-        peak_points = get_sqis(peak_points, 100, debug=debug)
+        peak_points = get_sqis(peak_points, fs)
         pulses.update(peak_points)
         peak_points = get_features(peak_points, visualise=visualise)
         pulses.update(peak_points)
-        pulses = get_pulse_predictions(pulses, "signal_quality_classifiers/random_forest_classifier.pkl")
+        #pulses = get_pulse_predictions(pulses, "signal_quality_classifiers/random_forest_classifier.pkl")
 
-        # convert peaks and troughs to numpy arrays
+        # Convert the peaks and troughs to numpy arrays
         peaks = np.array(peaks, dtype='i')
         troughs = np.array(troughs, dtype='i')
 
-        # add start value to each element using numpy broadcasting
+        # Add the start of the window to the peaks and troughs
         peaks += start
         troughs += start
 
         peaks_list[peaks] = 1
         troughs_list[troughs] = 1
 
-        break
-
     # Get the date and time and use to save the data
     # Get the current date and month
     date = datetime.datetime.now().strftime("%d_%m_%Y")
     print(date)
 
-    with open('data/features/PULSE_FEATURES_'+ date + '.pkl', 'wb') as f:
+    with open('extracted_features/PULSE_FEATURES_'+ date + '.pkl', 'wb') as f:
         pickle.dump(pulses, f)
 
     dataset["Peaks"] = peaks_list

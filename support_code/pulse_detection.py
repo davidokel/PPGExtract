@@ -1,40 +1,9 @@
-import pandas as pd
+import matplotlib.pyplot as plt
+from support_code.data_methods import normalise_data, get_signal_slopes
 import numpy as np
 import scipy.signal as sp
-import matplotlib.pyplot as plt
 
-def normalise_data(data,fs):
-    sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs)
-    sos_dc = sp.butter(4, (0.2/(fs/2)), btype='lowpass', analog=False, output='sos', fs=fs)
-    try:
-        ac = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=None)
-        dc = sp.sosfiltfilt(sos_dc, data, axis= -1, padtype='odd', padlen=None)
-    except ValueError:
-        min_padlen = int((len(data) - 1) // 2)
-        ac = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=min_padlen)
-        dc = sp.sosfiltfilt(sos_dc, data, axis= -1, padtype='odd', padlen=min_padlen)
-    
-    # Normalising and scaling the signal to a more manageable range
-    normalised = 10*(-(ac/dc))
-
-    return normalised
-
-def band_pass_filter(data, order, fs, low_cut, high_cut):
-    sos = sp.butter(order, [low_cut, high_cut], btype='bandpass', analog=False, output='sos', fs=fs) # Defining a high pass filter
-    filtered_data = sp.sosfiltfilt(sos, data, axis=- 1, padtype='odd', padlen=None) # Applying the high pass filter to the data chunk
-    return filtered_data
-
-def data_scaler(data):
-    min_data = min(data)
-    if min_data < 0:
-        scaling_factor = abs(min_data)
-    else:
-        scaling_factor = np.diff([0, min_data])[0]
-
-    data = data + scaling_factor
-    return data
-
-def get_onsets_v2(data,fs=100,visualise=False,debug=False):
+def get_pulses(data,fs=100,visualise=False,debug=False):
     normalised_data = normalise_data(data,fs)
 
     if debug:
@@ -49,38 +18,38 @@ def get_onsets_v2(data,fs=100,visualise=False,debug=False):
     # Filter data using savgol filter
     data_savgol = sp.savgol_filter(normalised_data, 51, 3)
 
+    if debug:
+        # Plot a subplot with the normalised data and the filtered data
+        plt.subplot(2,1,1)
+        plt.title("Normalised Data")
+        plt.plot(normalised_data)
+        plt.subplot(2,1,2)
+        plt.title("Filtered Data")
+        plt.plot(data_savgol)
+        plt.show()
+        
     # Calculate the first and second derivative of the data
+    # Using np.gradient() to calculate the first derivative and second derivative
+    # Using np.gradient instead of np.diff as np.gradient returns the same number of elements as the original array
     data_first_derivative = np.gradient(data_savgol)
     data_second_derivative = np.gradient(data_first_derivative)
 
     # Compute the element-wise difference between the two arrays
     diff = data_first_derivative - data_second_derivative
     
-    # Identify the indices where the sign of the difference changes
-    sign_change = np.where(np.diff(np.sign(diff)))[0]
+    # Find the indices where the sign changes above 0.001
+    sign_change = np.where(np.gradient(np.sign(diff)))[0]
     
     # Add one to the indices to account for the offset introduced by np.diff
-    crossings = sign_change + 1
+    crossings = sign_change
+    # crossings = sign_change + 1
 
     # With an fs of 100Hz calculate what 220bpm equates to in terms of samples
-    bpm_220 = int((60/220)*fs)
+    """bpm_220 = int((60/220)*fs)
 
     # Remove any crossings that are less than 220bpm apart
     mask = crossings > bpm_220
-    crossings = crossings[mask]
-
-    # Use np.roll() to calculate the differences between adjacent elements
-    diff = np.roll(data_savgol, -1) - data_savgol
-
-    # Identify the indices where the sign of the difference changes
-    sign_change = np.where(np.diff(np.sign(diff)))[0]
-
-    # Add one to the indices to account for the offset introduced by np.diff
-    crossings = sign_change + 1
-
-    # Remove any crossings that are less than 220bpm apart
-    mask = crossings > bpm_220
-    crossings = crossings[mask]
+    crossings = crossings[mask]"""
 
     # Finding the peaks from the crossings
     peaks = []
@@ -88,6 +57,9 @@ def get_onsets_v2(data,fs=100,visualise=False,debug=False):
     notches = []
     peak_points = {}
 
+    ##############################
+    # CLASSIFY PEAKS AND TROUGHS #
+    ##############################
     # If there are no crossings then return an empty list
     if len(crossings) == 0:
         return peaks
@@ -105,12 +77,33 @@ def get_onsets_v2(data,fs=100,visualise=False,debug=False):
             if pre_data_slope < 0 and post_data_slope > 0:
                 troughs.append(crossings[i])
 
+    """# Calculating the upper and lower envelope of the signal using scipy interp1d and the peaks and troughs
+    peaks_interpolated = np.interp(np.arange(0, len(data_savgol)), peaks, data_savgol[peaks])
+    troughs_interpolated = np.interp(np.arange(0, len(data_savgol)), troughs, data_savgol[troughs])
+
+    # Calculate the upper and lower envelope
+    upper_envelope = np.maximum(peaks_interpolated, troughs_interpolated)
+    lower_envelope = np.minimum(peaks_interpolated, troughs_interpolated)
+    """
+
+    # Calculating by how much np.gradient offsets the data
+    offset = int((len(data_savgol) - len(diff))/2)
+
+    # Adding offset to the left hand side of the first derivative
+    data_first_derivative = np.insert(data_first_derivative, 0, np.zeros(offset))
+
     if debug:
         plt.plot(data_savgol)
         plt.title("CLASSIFY PEAKS AND TROUGHS")
         plt.plot(peaks, data_savgol[peaks], "gx")
         plt.plot(troughs, data_savgol[troughs], "rx")
+        # Plot the first and second derivative on the same plot
+        plt.plot(data_first_derivative*5)
+        plt.plot(data_second_derivative*5)
         plt.show()
+        # Plot the upper and lower envelope
+        """plt.plot(upper_envelope)
+        plt.plot(lower_envelope)"""
 
     # Go through the peaks and troughs and find the associated local maxima and minima
     peaks_raw = []
@@ -303,13 +296,3 @@ def get_onsets_v2(data,fs=100,visualise=False,debug=False):
             plt.show()
 
     return peak_points, peaks, troughs
-
-def get_signal_slopes(data,index1,index2):
-        # Compute the difference in y-values and x-values
-    y_diff = data[index2] - data[index1]
-    x_diff = index2 - index1
-    
-    # Compute the slope
-    slope = y_diff / x_diff
-    
-    return slope

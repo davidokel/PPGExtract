@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-import feature_extraction_code.data_methods as data_methods
+import support_code.data_methods as data_methods
 from scipy.integrate import trapz
     
 def get_aucs(pulse_data, visualise=0):
