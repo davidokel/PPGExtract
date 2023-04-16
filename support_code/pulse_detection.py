@@ -16,7 +16,8 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         plt.show()
     
     # Filter data using savgol filter
-    data_savgol = sp.savgol_filter(normalised_data, 51, 3)
+    #data_savgol = sp.savgol_filter(normalised_data, 51, 5)
+    data_savgol = sp.savgol_filter(normalised_data, 71, 5)
 
     if debug:
         # Plot a subplot with the normalised data and the filtered data
@@ -76,22 +77,7 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
             # If the slope of the data before the crossing is negative and the slope of the data after the crossing is positive then the crossing is a trough
             if pre_data_slope < 0 and post_data_slope > 0:
                 troughs.append(crossings[i])
-
-    """# Calculating the upper and lower envelope of the signal using scipy interp1d and the peaks and troughs
-    peaks_interpolated = np.interp(np.arange(0, len(data_savgol)), peaks, data_savgol[peaks])
-    troughs_interpolated = np.interp(np.arange(0, len(data_savgol)), troughs, data_savgol[troughs])
-
-    # Calculate the upper and lower envelope
-    upper_envelope = np.maximum(peaks_interpolated, troughs_interpolated)
-    lower_envelope = np.minimum(peaks_interpolated, troughs_interpolated)
-    """
-
-    # Calculating by how much np.gradient offsets the data
-    offset = int((len(data_savgol) - len(diff))/2)
-
-    # Adding offset to the left hand side of the first derivative
-    data_first_derivative = np.insert(data_first_derivative, 0, np.zeros(offset))
-
+    
     if debug:
         plt.plot(data_savgol)
         plt.title("CLASSIFY PEAKS AND TROUGHS")
@@ -100,16 +86,16 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         # Plot the first and second derivative on the same plot
         plt.plot(data_first_derivative*5)
         plt.plot(data_second_derivative*5)
+        # Plot the third derivative on the same plot
+        plt.plot(np.gradient(data_second_derivative)*5)
+
         plt.show()
-        # Plot the upper and lower envelope
-        """plt.plot(upper_envelope)
-        plt.plot(lower_envelope)"""
 
     # Go through the peaks and troughs and find the associated local maxima and minima
     peaks_raw = []
     troughs_raw = []
 
-    search_space = int(fs*0.35)
+    search_space = int(fs*0.25)
 
     # Iterate over the peaks and troughs
     for i in range(0, len(peaks)):
