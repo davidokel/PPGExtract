@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from support_code.data_methods import normalise_data, get_signal_slopes
 import numpy as np
 import scipy.signal as sp
+from operator import itemgetter
 
 def get_pulses(data,fs=100,visualise=False,debug=False):
     normalised_data = normalise_data(data,fs)
@@ -35,27 +36,25 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     d2_norm_data = np.gradient(d1_norm_data)
 
     # Filter d1 and d2 using savgol filter
-    d1_norm_data_filtered = sp.savgol_filter(d1_norm_data, 37, 5)
+    d1_norm_data_filtered = sp.savgol_filter(d1_norm_data, 47, 5)
+    d2_norm_data_filtered = sp.savgol_filter(d2_norm_data, 47, 5)
+
     # Median of the d1_norm_data_filtered
     d2_norm_data_filtered_median = np.median(d2_norm_data)
-    d2_norm_data_filtered = sp.savgol_filter(d2_norm_data, 37, 5)
-
-    # Compute the element-wise difference between the two arrays
-    diff_norm_data = d1_norm_data_filtered - d2_norm_data_filtered
     
-    # Find the indices where the sign changes above 0.001
+    # CALCULATING THE CROSSING POINTS (FIRST AND SECOND DERIVATIVE)
+    diff_norm_data = d1_norm_data_filtered - d2_norm_data_filtered
     crossings_norm_data = np.where(np.gradient(np.sign(diff_norm_data)))[0]
 
+    # CALCULATING THE CROSSING POINTS (NORMALISED RAW DATA)
     diff_data = normalised_data - np.mean(normalised_data)
     crossings_data = np.where(np.gradient(np.sign(diff_data)))[0]
 
+    # CALCULATING THE CROSSING POINTS (FIRST AND SECOND DERIVATIVE OF THE FILTERED DATA)
     d1_savgol_data = np.gradient(data_savgol)
     d2_savgol_data = np.gradient(d1_savgol_data)
 
-    # Compute the element-wise difference between the two arrays
     diff_savgol_data = d1_savgol_data - d2_savgol_data
-    
-    # Find the indices where the sign changes
     crossings_savgol_data = np.where(np.gradient(np.sign(diff_savgol_data)))[0]
 
     # Plot the data and the crossings
@@ -94,7 +93,6 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     while (len(peaks) > 0 and len(troughs) > 0) and (peaks[0] < troughs[0]):
         # If the first detected element is a peak not a trough then remove it until the first detected element is a trough
         peaks.pop(0)
-        # Plot the data
 
     # If the last detected element is a peak not a trough then remove it until the last detected element is a trough
     while (len(peaks) > 0 and len(troughs) > 0) and (peaks[-1] > troughs[-1]):
@@ -112,11 +110,10 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         plt.plot(np.gradient(d2_savgol_data)*5)
 
         plt.show()
-    
-    candidate_peaks = []
+
+    # Generate a dictionary called peak_points for storing peak information
+    peak_points = {}
     search_indexes = []
-    pulse_centroids = []
-    crossing_points = []
 
     # Iterate over the peaks
     for i in range(0, len(peaks)):
@@ -125,20 +122,35 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         # Check that there are crossings before the peak
         if len(all_crossings_pre) != 0:
             left_crossing = max(all_crossings_pre)
-            crossing_points.append(left_crossing)
+            # Add for the current peak and the left_crossing to the dictionary
+            peak_points[i] = {"Peak": peaks[i], "Pre_peak": left_crossing}
         else:
-            continue
+            # Add a NaN value for the Pre_peak
+            peak_points[i] = {"Peak": peaks[i], "Pre_peak": None}
     
         # For the current peak, find the crossings_data which is closest to the right of the peak
         all_crossings_post = crossings_data[crossings_data > peaks[i]]
         # Check that there are crossings after the peak
         if len(all_crossings_post) != 0:
             right_crossing = min(all_crossings_post)
-            crossing_points.append(right_crossing)
+            # Add for the current peak and the right_crossing to the dictionary
+            peak_points[i]["Post_peak"] = right_crossing
         else:
-            continue
-        
-        # If left_crossing and right_crossing exist:
+            peak_points.pop(i)
+
+    # Defining the pulse onset and end, in order to find the most accurate peaks
+    # Enumerate the peak_points dictionary and get the keys and values
+    # Get all keys in the peak_points dictionary
+    peak_points_keys = list(peak_points.keys())
+    # Iterate over the peak_points_keys
+    for i, key in enumerate(peak_points_keys):
+        print("Processing key {} of {}".format(i+1, len(peak_points)))
+        # Print key values
+        print(peak_points[key])
+        # For the current peak, get the left_crossing and right_crossing
+        left_crossing = peak_points[key]["Pre_peak"]
+        right_crossing = peak_points[key]["Post_peak"]
+
         # Find all the crossings in crossings_norm_data that are between the left_crossing_norm and right_crossing_norm or not NaN
         if left_crossing != None and right_crossing != None and (np.isnan(left_crossing) == False and np.isnan(right_crossing) == False):
             crossings_norm_data_between = [crossing for crossing in crossings_norm_data if crossing > left_crossing and crossing < right_crossing]
@@ -150,271 +162,160 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
                 # Find the average value crossing_norm_data_between
                 pulse_centroid = int(np.mean(crossings_norm_data_between))
             
-            pulse_centroids.append(pulse_centroid)
+            # Add the pulse_centriod to the peak_points dictionary
+            peak_points[key]["Pulse_centroid"] = pulse_centroid
 
-            # Calculate the distance between the left_crossing and the peak_centroid and the right_crossing and the peak_centroid
-            left_distance = pulse_centroid - left_crossing
-            right_distance = right_crossing - pulse_centroid
+            # Get the closest crossings_norm_data which is less than left_crossing
+            left_points = crossings_norm_data[crossings_norm_data < left_crossing]
+            # Get the closest crossings_norm_data which is greater than right_crossing
+            right_points = crossings_norm_data[crossings_norm_data > right_crossing]
 
-            # Calculate the average distance between the left and right distance
-            average_distance = int(np.mean([left_distance, right_distance]))
+            # If there are left_points and right_points
+            if len(left_points) != 0 and len(right_points) != 0:
+                pulse_onset_search = max(left_points)
+                pulse_end_search = min(right_points)
 
-            # Define the search space from peak_centroid - average_distance to peak_centroid + average_distance
-            """search_start = int(pulse_centroid - average_distance)
-            search_end = int(pulse_centroid + average_distance)"""
+                # Get distance between the left_crossing and the centroid
+                distance_left_crossing_centroid = int(abs(pulse_centroid - left_crossing))
+                # Get distance between the right_crossing and the centroid
+                distance_right_crossing_centroid = int(abs(pulse_centroid - right_crossing))
 
-            search_start = int(left_crossing)
-            search_end = int(right_crossing)
+                pulse_onset_search_start = int(pulse_onset_search - distance_left_crossing_centroid)
+                pulse_onset_search_end = left_crossing
 
-            search_indexes.append(search_start)
-            search_indexes.append(search_end)
+                pulse_end_search_start = right_crossing
+                pulse_end_search_end = int(pulse_end_search + distance_right_crossing_centroid)
+
+                # Adding elements to search_indexes
+                search_indexes.append(pulse_onset_search_start)
+                search_indexes.append(pulse_onset_search_end)
+                search_indexes.append(pulse_end_search_start)
+                search_indexes.append(pulse_end_search_end)
             
-            # Find the index of the max value of the normalised_data between the search_start and search_end
-            candidate_peak = np.argmax(normalised_data[search_start:search_end]) + search_start
+                # Define the search space within the normalised_data
+                onset_search_space = normalised_data[pulse_onset_search_start:pulse_onset_search_end]
+                end_search_space = normalised_data[pulse_end_search_start:pulse_end_search_end]
 
-            # Add the candidate peak to the list
-            candidate_peaks.append(candidate_peak)
+                # Check that the onset_search_space and end_search_space are not empty
+                if len(onset_search_space) != 0 and len(end_search_space) != 0:
+                    pulse_onset = np.argmin(onset_search_space) + pulse_onset_search_start
+                    pulse_end = np.argmin(end_search_space) + pulse_end_search_start
+                else:
+                    continue
+
+                # Get the index of the maximum value between the pulse_onset and pulse_end
+                pulse_peak = np.argmax(normalised_data[pulse_onset:pulse_end]) + pulse_onset
+
+                # Update the peak_points dictionary with the pulse_onset, pulse_end and pulse_peak
+                peak_points[key]["Pre_peak"] = pulse_onset
+                peak_points[key]["Post_peak"] = pulse_end
+                peak_points[key]["Pulse_peak"] = pulse_peak
+
+                # Calculate the peak prominence
+                prominence = sp.peak_prominences(normalised_data, [pulse_peak])[0]
+                # Add the prominence to the dictionary
+                peak_points[key]["Prominence"] = prominence
         else:
             continue
 
+    # Get all the pre and post peak points from the dictionary
+    # Get a list of all "Pre_peak" and "Post_peak" keys from the dictionary using itemgetter
+    pre_peaks = list(map(itemgetter("Pre_peak"), peak_points.values()))
+    post_peaks = list(map(itemgetter("Post_peak"), peak_points.values()))
+    # Get a list of all "Pulse_peak" keys from the dictionary using itemgetter
+    pulse_peak_keys = list(map(itemgetter("Pulse_peak"), peak_points.values()))
+    # Get a list of all "Pulse_centroid" keys from the dictionary using itemgetter
+    pulse_centroid_keys = list(map(itemgetter("Pulse_centroid"), peak_points.values()))
+    # Get a list of all "Prominence" keys from the dictionary using itemgetter
+    prominences = list(map(itemgetter("Prominence"), peak_points.values()))
+    # Combine the pre and post peaks list
+    pre_post_peaks = pre_peaks + post_peaks
+
+    # Calculate the upper and lower envelopes
+    upper_envelope = np.interp(np.arange(len(normalised_data)), pulse_peak_keys, normalised_data[pulse_peak_keys])
+    lower_envelope = np.interp(np.arange(len(normalised_data)), pre_post_peaks, normalised_data[pre_post_peaks])
+    
+    # Calculate the differences in x-coordinates (indices)
+    delta_x = np.diff(pulse_peak_keys)
+
+    # Calculate the differences in y-coordinates (amplitudes)
+    delta_y = np.diff(normalised_data[pulse_peak_keys])
+
+    # Calculate the slope angles in radians
+    slope_angles = np.arctan(delta_y / delta_x)
+
+    # Convert the slope angles from radians to degrees if needed
+    slope_angles = np.degrees(slope_angles)
+
+    # Get the mean of the slope angles
+    mean_slope_angle = np.mean(slope_angles)
+
+    # Get the standard deviation of the slope angles
+    std_slope_angle = np.std(slope_angles)
+
+    # Check if the standard deviation is close to zero
+    if np.isclose(std_slope_angle, 0):
+        # Handle the case when the standard deviation is zero or negligible
+        upper_bound = mean_slope_angle
+        lower_bound = mean_slope_angle
+    else:
+        # Define the upper and lower bounds for the slope angles
+        upper_bound = mean_slope_angle + std_slope_angle
+        lower_bound = mean_slope_angle - std_slope_angle
+
+    print(upper_bound)
+    print(lower_bound)
+
+
+    anomal_peaks = []
+    # Iterate over the slope_angles
+    for i, angle in enumerate(slope_angles):
+        # If the angle is greater than the upper bound or less than the lower bound
+        if angle > upper_bound or angle < lower_bound:
+            # Remove the corresponding peak from the pulse_peak_keys
+            # Find the associated pulse peak
+            pulse_peak = pulse_peak_keys[i]
+            # Remove the pulse peak from the pulse_peak_keys
+            anomal_peaks.append(pulse_peak)
+            pulse_peak_keys.pop(i)
+
     if debug == True:
+        # Add title
+        # Create a subplot of two plots stacked on top of each other
+        plt.subplot(2,1,1)
+        plt.title("PULSE ONSET AND END")
         plt.plot(normalised_data)
         plt.plot(data_savgol)
         # Plot the current peak
         plt.plot(peaks, data_savgol[peaks], "gx")
         # Plot the candidate peak as a green dot on the norm data
-        plt.plot(candidate_peaks, normalised_data[candidate_peaks], "go")
-        # Plotting crossings_data as yellow dots
-        plt.plot(crossings_norm_data, d1_norm_data_filtered[crossings_norm_data], "yo")
-        # Plot the crossing points as red dots on the norm data
-        plt.plot(crossing_points, normalised_data[crossing_points], "ro")
+        plt.plot(pulse_peak_keys, normalised_data[pulse_peak_keys], "go")
+        # Plot the anomaly peaks as orange dots on the norm data
+        plt.plot(anomal_peaks, normalised_data[anomal_peaks], "yo")
+        # Plotting crossings_data as red dots
+        plt.plot(pre_peaks, normalised_data[pre_peaks], "ro")
+        plt.plot(post_peaks, normalised_data[post_peaks], "ro")
+        # Plot crossings_norm_data as yellow dots
+        #plt.plot(crossings_norm_data, d1_norm_data_filtered[crossings_norm_data], "yo")
         # Plot the pulse_centroids as blue dots
-        plt.plot(pulse_centroids, d1_norm_data_filtered[pulse_centroids], "bo")
-        # Plot the search_indexes list as vertical dashed black lines
-        for i in range(0, len(search_indexes)):
-            plt.axvline(x=search_indexes[i], color="k", linestyle="--")
+        plt.plot(pulse_centroid_keys, d1_norm_data_filtered[pulse_centroid_keys], "bo")
         # Plot the d2_norm_data_filtered_median as a black horizontal line
         plt.axhline(y=np.mean(normalised_data), color="k")
         # Plot the d1_norm_data_filtered
         plt.plot(d1_norm_data_filtered)
-        # Maximise the plot using figure manager
-        figManager = plt.get_current_fig_manager()
-        figManager.window.showMaximized()
+
+        # Plot the second subplot
+        plt.subplot(2,1,2)
+        # Plot the data's slope_angles as a histogram
+        plt.hist(slope_angles, bins=100)
+        # Create a title and add the upper and lower bounds to the title
+        plt.title("SLOPE ANGLES\nUpper bound: {}\nLower bound: {}".format(upper_bound, lower_bound))
+
         plt.show()
 
         plt.plot(normalised_data)
-        # Plot the candidate peaks
-        plt.plot(candidate_peaks, normalised_data[candidate_peaks], "go")
+        plt.plot(pulse_peak_keys, normalised_data[pulse_peak_keys], "go")
+        plt.plot(pre_peaks, normalised_data[pre_peaks], "ro")
+        plt.plot(post_peaks, normalised_data[post_peaks], "ro")
+        plt.title("Detected peaks and troughs")
         plt.show()
-
-    # Go through the peaks and troughs and find the associated local maxima and minima
-    peaks_raw = []
-    troughs_raw = []
-    search_space = int(fs*0.35)
-
-    # Iterate over the peaks and troughs
-    for i in range(0, len(peaks)):
-        # Define the exploration space for the peak
-        if peaks[i] - search_space < 0:
-            peak_explore_start = 0
-        else:
-            peak_explore_start = peaks[i] - search_space
-            
-        if peaks[i] + search_space > len(normalised_data):
-            peak_explore_end = len(normalised_data)
-        else:
-            peak_explore_end = peaks[i] + search_space
-
-        # Find the local maxima and minima
-        peak_raw = np.argmax(normalised_data[peak_explore_start:peak_explore_end]) + peak_explore_start
-
-        # Add the local maxima and minima to the list
-        peaks_raw.append(peak_raw)
-
-    for i in range(0, len(troughs)):
-        # Define the exploration space for the trough
-        if troughs[i] - search_space < 0:
-            trough_explore_start = 0
-        else:
-            trough_explore_start = troughs[i] - search_space
-
-        if troughs[i] + search_space > len(normalised_data):
-            trough_explore_end = len(normalised_data)
-        else:
-            trough_explore_end = troughs[i] + search_space
-
-        trough_raw = np.argmin(normalised_data[trough_explore_start:trough_explore_end]) + trough_explore_start
-        troughs_raw.append(trough_raw)
-
-    if debug: 
-        plt.plot(normalised_data)
-        plt.plot(d1_norm_data_filtered)
-        # Plot the d1_norm_data_filtered_median as a black horizontal line
-        plt.axhline(y=d2_norm_data_filtered_median, color="k")
-        plt.plot(data_savgol)
-
-        # Plot current peak from peaks in data_savgol
-        plt.plot(peaks, data_savgol[peaks], "gx")
-        # Plot current peak in normalised_data
-        plt.plot(peaks_raw, normalised_data[peaks_raw], "go")
-        
-        # Plot current trough from troughs in data_savgol
-        plt.plot(troughs, data_savgol[troughs], "rx")
-        # Plot current peak in normalised_data
-        plt.plot(troughs_raw, normalised_data[troughs_raw], "ro")
-
-        # Plot the d1_d2_cross as red dots
-        plt.plot(crossings_norm_data, d1_norm_data_filtered[crossings_norm_data], "ko")
-        plt.show()
-        
-
-    while (len(peaks_raw) > 0 and len(troughs_raw) > 0) and (peaks_raw[0] < troughs_raw[0]):
-        # If the first detected element is a peak not a trough then remove it until the first detected element is a trough
-        peaks_raw.pop(0)
-        # Plot the data
-
-    # If the last detected element is a peak not a trough then remove it until the last detected element is a trough
-    while (len(peaks_raw) > 0 and len(troughs_raw) > 0) and (peaks_raw[-1] > troughs_raw[-1]):
-        peaks_raw.pop(-1)
-
-    # Iterate over the troughs and the peaks, if there are more than one peaks between two troughs then remove the peaks that are not the local maxima
-    for i in range(0, len(troughs_raw)-1):
-        # Get the peaks between the current trough and the next trough
-        peaks_between_troughs = [peak for peak in peaks_raw if peak > troughs_raw[i] and peak < troughs_raw[i+1]]
-
-        # If there are more than one peaks between the current trough and the next trough
-        if len(peaks_between_troughs) > 1:
-            # Get the values of the normalised_data at the peaks between the current trough and the next trough
-            peaks_between_troughs_values = [normalised_data[peak] for peak in peaks_between_troughs]
-
-            # Get the index of the local maxima
-            local_maxima_index = np.argmax(peaks_between_troughs_values)
-
-            # Remove the peaks that are not the local maxima
-            for j, peak in enumerate(peaks_between_troughs):
-                if j != local_maxima_index:
-                    peaks_raw.remove(peak)
-
-    if debug:
-        plt.plot(normalised_data)
-        plt.title("PRE-DICTIONARY")
-        plt.plot(list(map(int, peaks_raw)), [normalised_data[i] for i in map(int, peaks_raw)], "gx")
-        plt.plot(list(map(int, troughs_raw)), [normalised_data[i] for i in map(int, troughs_raw)], "rx")
-        plt.show()
-
-    # Iterate over the peaks
-    if len(peaks_raw) != 0:
-        # Enumerate peaks_raw
-        for i, peak in enumerate(peaks_raw):
-            # If the peak is the first and only peak in peaks_raw and peak_points is empty
-            if i == 0 and len(peaks_raw) == 1 and len(peak_points) == 0:
-                # Get all troughs that are before the peak and after the peak
-                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
-                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
-
-                # Check that there are pre and post peak troughs
-                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
-                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
-                    pre_peak = max(pre_peak_troughs)
-                    post_peak = min(post_peak_troughs)
-
-                    relative_peak = peak - pre_peak
-
-                    peak_points[peak] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak, "raw_pulse_data": data[pre_peak:post_peak], "norm_pulse_data": normalised_data[pre_peak:post_peak], "Relative_peak": relative_peak}
-                else: 
-                    continue
-
-            # If the peak is the first peak but not the last peak in peaks_raw and peak_points is empty
-            elif i == 0 and len(peaks_raw) != 1 and len(peak_points) == 0:
-                # Get all troughs that are before the peak and after the peak
-                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
-                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
-
-                # Check that there are pre and post peak troughs
-                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
-                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
-                    pre_peak = max(pre_peak_troughs)
-                    post_peak = min(post_peak_troughs)
-
-                    relative_peak = peak - pre_peak
-
-                    if post_peak < peaks_raw[i+1]:
-                        peak_points[peak] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak, "raw_pulse_data": data[pre_peak:post_peak], "norm_pulse_data": normalised_data[pre_peak:post_peak], "Relative_peak": relative_peak}
-                else: 
-                    continue
-
-            # If the peak is not the first nor last peak in peaks_raw and peak_points is not empty
-            elif i != 0 and i != len(peaks_raw)-1 and len(peak_points) != 0:
-                # Get all troughs that are before the peak and after the peak
-                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
-                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
-
-                # Check that there are pre and post peak troughs
-                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
-                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
-                    pre_peak = max(pre_peak_troughs)
-                    post_peak = min(post_peak_troughs)
-
-                    # Get peak_points keys
-                    peak_points_keys = list(peak_points.keys())
-                    # Get the last key in peak_points_keys
-                    last_key = peak_points_keys[-1]
-
-                    relative_peak = peak - pre_peak
-                    
-                    # Ensure that the pre_peak is >= the previous peak's post_peak and the post_peak is not greater than the next peak
-                    if pre_peak >= peak_points[last_key]["Post_peak"] and post_peak < peaks_raw[i+1]:
-                        # Add the peaks and troughs to the dictionary
-                        peak_points[peak] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak, "raw_pulse_data": data[pre_peak:post_peak], "norm_pulse_data": normalised_data[pre_peak:post_peak], "Relative_peak": relative_peak}
-                else:
-                    continue
-
-            # If the peak is the last peak in peaks_raw and peak_points is not empty
-            elif i == len(peaks_raw)-1 and len(peak_points) != 0:
-                # Get all troughs that are before the peak and after the peak
-                pre_peak_troughs = [trough for trough in troughs_raw if trough < peak]
-                post_peak_troughs = [trough for trough in troughs_raw if trough > peak]
-
-                # Check that there are pre and post peak troughs
-                if len(pre_peak_troughs) != 0 and len(post_peak_troughs) != 0:
-                    # Get the max peak from pre_peak_troughs and the min peak from post_peak_troughs
-                    pre_peak = max(pre_peak_troughs)
-                    post_peak = min(post_peak_troughs)
-
-                    # Get peak_points keys
-                    peak_points_keys = list(peak_points.keys())
-                    # Get the last key in peak_points_keys
-                    last_key = peak_points_keys[-1]
-
-                    relative_peak = peak - pre_peak
-                    
-                    # Ensure that the pre_peak is >= the previous peak's post_peak
-                    if pre_peak >= peak_points[last_key]["Post_peak"]:
-                        # Add the peaks and troughs to the dictionary
-                        peak_points[peak] = {"Peak": peak, "Pre_peak": pre_peak, "Post_peak": post_peak, "raw_pulse_data": data[pre_peak:post_peak], "norm_pulse_data": normalised_data[pre_peak:post_peak], "Relative_peak": relative_peak}
-                else:
-                    continue
-
-        # Get all the pre and post peak points from the dictionary and store them in a list
-        troughs = []
-        peaks = []
-        for key in peak_points:
-            troughs.append(peak_points[key]["Pre_peak"])
-            troughs.append(peak_points[key]["Post_peak"])
-            
-            # Get the index of the maximum value between the pre_peak and post_peak points
-            corrected_peak = np.argmax(normalised_data[peak_points[key]["Pre_peak"]:peak_points[key]["Post_peak"]]) + peak_points[key]["Pre_peak"]
-            
-            # Change the peak value in the dictionary to the maximum value between the pre_peak and post_peak
-            peak_points[key]["Peak"] = corrected_peak
-
-            peaks.append(peak_points[key]["Peak"])
-            
-        # Plot the data and the peaks and troughs
-        if debug or visualise:
-            plt.plot(normalised_data)
-            plt.plot(list(map(int, peaks)), [normalised_data[i] for i in map(int, peaks)], "go")
-            plt.plot(list(map(int, troughs)), [normalised_data[i] for i in map(int, troughs)], "ro")
-            plt.show()
-
-    return peak_points, peaks, troughs

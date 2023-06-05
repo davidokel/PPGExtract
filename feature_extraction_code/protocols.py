@@ -7,10 +7,7 @@ from feature_extraction_code.features import get_features
 from signal_quality_classifiers.classify_pulses import get_pulse_predictions
 import datetime
 
-def extraction_protocol(dataset, fs, window_size, save_name, visualise = 0, debug = 0):
-    # Isolating the data column
-    data = dataset["Data"]
-
+def extraction_protocol(data, fs, window_size, save_name, visualise = 0, debug = 0):
     # Calculate the total number of windows
     num_windows = math.ceil(len(data)/window_size)
 

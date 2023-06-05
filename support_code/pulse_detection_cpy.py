@@ -3,6 +3,8 @@ from support_code.data_methods import normalise_data, get_signal_slopes
 import numpy as np
 import scipy.signal as sp
 
+# Older codebase
+
 def get_pulses(data,fs=100,visualise=False,debug=False):
     normalised_data = normalise_data(data,fs)
 
