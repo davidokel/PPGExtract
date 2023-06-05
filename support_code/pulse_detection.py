@@ -17,7 +17,7 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         plt.show()
     
     # Filter data using savgol filter
-    data_savgol = sp.savgol_filter(normalised_data, 74, 5)
+    data_savgol = sp.savgol_filter(normalised_data, 75, 5)
 
     if debug:
         # Plot a subplot with the normalised data and the filtered data
@@ -213,6 +213,10 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
 
                 # Calculate the peak prominence
                 prominence = sp.peak_prominences(normalised_data, [pulse_peak])[0]
+                # Calculate the peak width
+                width = sp.peak_widths(normalised_data, [pulse_peak], rel_height=0.5)[0]
+                # Add the width to the dictionary
+                peak_points[key]["Width"] = width
                 # Add the prominence to the dictionary
                 peak_points[key]["Prominence"] = prominence
         else:
@@ -228,21 +232,22 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     pulse_centroid_keys = list(map(itemgetter("Pulse_centroid"), peak_points.values()))
     # Get a list of all "Prominence" keys from the dictionary using itemgetter
     prominences = list(map(itemgetter("Prominence"), peak_points.values()))
+    # Get a list of all "Width" keys from the dictionary using itemgetter
+    widths = list(map(itemgetter("Width"), peak_points.values()))
     # Combine the pre and post peaks list
     pre_post_peaks = pre_peaks + post_peaks
 
-    # Calculate the upper and lower envelopes
-    upper_envelope = np.interp(np.arange(len(normalised_data)), pulse_peak_keys, normalised_data[pulse_peak_keys])
-    lower_envelope = np.interp(np.arange(len(normalised_data)), pre_post_peaks, normalised_data[pre_post_peaks])
-    
     # Calculate the differences in x-coordinates (indices)
     delta_x = np.diff(pulse_peak_keys)
 
     # Calculate the differences in y-coordinates (amplitudes)
     delta_y = np.diff(normalised_data[pulse_peak_keys])
 
-    # Calculate the slope angles in radians
-    slope_angles = np.arctan(delta_y / delta_x)
+    # Perform the slope angle calculation
+    slope_angles = np.zeros_like(delta_x, dtype=float)  # Initialize an array for slope angles
+
+    nonzero_indices = delta_x != 0  # Get indices where delta_x is non-zero
+    slope_angles[nonzero_indices] = np.arctan(delta_y[nonzero_indices] / delta_x[nonzero_indices])
 
     # Convert the slope angles from radians to degrees if needed
     slope_angles = np.degrees(slope_angles)
@@ -253,32 +258,92 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     # Get the standard deviation of the slope angles
     std_slope_angle = np.std(slope_angles)
 
-    # Check if the standard deviation is close to zero
-    if np.isclose(std_slope_angle, 0):
-        # Handle the case when the standard deviation is zero or negligible
-        upper_bound = mean_slope_angle
-        lower_bound = mean_slope_angle
-    else:
-        # Define the upper and lower bounds for the slope angles
-        upper_bound = mean_slope_angle + std_slope_angle
-        lower_bound = mean_slope_angle - std_slope_angle
+    # Define the upper and lower bounds for the slope angles
+    upper_bound = mean_slope_angle + 2 * (std_slope_angle)
+    lower_bound = mean_slope_angle - 2 * (std_slope_angle)
 
-    print(upper_bound)
-    print(lower_bound)
+    # Calculate the mean of the prominences
+    mean_prominence = np.mean(prominences)
 
+    # Calculate the standard deviation of the prominences
+    std_prominence = np.std(prominences)
+
+    # Define the upper and lower bounds for the prominences
+    upper_bound_prominence = mean_prominence + 2 * (std_prominence)
+    lower_bound_prominence = mean_prominence - 2 * (std_prominence)
+
+    # Calculate the inter-peak distances between the pulse peaks
+    inter_peak_distances = np.diff(pulse_peak_keys)
+
+    # Calculate the upper and lower bounds for the inter-peak distances
+    upper_bound_inter_peak_distance = np.mean(inter_peak_distances) + 2 * (np.std(inter_peak_distances))
+    lower_bound_inter_peak_distance = np.mean(inter_peak_distances) - 2 * (np.std(inter_peak_distances))
+
+    # Calculate the mean of the widths
+    mean_width = np.mean(widths)
+
+    # Calculate the standard deviation of the widths
+    std_width = np.std(widths)
+
+    # Define the upper and lower bounds for the widths
+    upper_bound_width = mean_width + 2 * (std_width)
+    lower_bound_width = mean_width - 2 * (std_width)
+    
+    from matplotlib_venn import venn4
 
     anomal_peaks = []
-    # Iterate over the slope_angles
-    for i, angle in enumerate(slope_angles):
-        # If the angle is greater than the upper bound or less than the lower bound
-        if angle > upper_bound or angle < lower_bound:
-            # Remove the corresponding peak from the pulse_peak_keys
-            # Find the associated pulse peak
-            pulse_peak = pulse_peak_keys[i]
-            # Remove the pulse peak from the pulse_peak_keys
-            anomal_peaks.append(pulse_peak)
-            pulse_peak_keys.pop(i)
+    # Reset the boolean values
+    slope = True
+    amp = True
+    interval = True
+    width = True
 
+    slope_values = []
+    amp_values = []
+    interval_values = []
+    width_values = []
+
+    # Iterate over the slope_angles
+    for i in range(len(slope_angles)):
+        # Check if the slope angle is within the bounds
+        if slope_angles[i] > upper_bound or slope_angles[i] < lower_bound:
+            slope = False
+            slope_values.append(False)
+        if prominences[i] > upper_bound_prominence or prominences[i] < lower_bound_prominence:
+            amp = False
+            amp_values.append(False)
+        if inter_peak_distances[i] > upper_bound_inter_peak_distance or inter_peak_distances[i] < lower_bound_inter_peak_distance:
+            interval = False
+            interval_values.append(False)
+        if widths[i] > upper_bound_width or widths[i] < lower_bound_width:
+            width = False
+            width_values.append(False)
+
+        # Apply a weighted majority vote
+        # Example weights for each feature
+        weight_slope = 0.5
+        weight_amp = 0.3
+        weight_interval = 0.3
+        weight_width = 0.3
+
+        # Create a list of boolean values and corresponding weights
+        boolean_values = [slope, amp, interval, width]
+        weights = [weight_slope, weight_amp, weight_interval, weight_width]
+
+        # Calculate the weighted sum
+        weighted_sum = sum(w * v for w, v in zip(weights, boolean_values))
+
+        # Check if the weighted sum is less than half the total weight
+        if weighted_sum < sum(weights) / 2:
+            # Remove the peak from the dictionary
+            anomal_peaks.append(pulse_peak_keys[i])
+
+        # Reset the boolean values
+        slope = True
+        amp = True
+        interval = True
+        width = True
+        
     if debug == True:
         # Add title
         # Create a subplot of two plots stacked on top of each other
@@ -308,6 +373,9 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         plt.subplot(2,1,2)
         # Plot the data's slope_angles as a histogram
         plt.hist(slope_angles, bins=100)
+        # Plot the upper and lower bounds as vertical lines
+        plt.axvline(x=upper_bound, color="r")
+        plt.axvline(x=lower_bound, color="r")
         # Create a title and add the upper and lower bounds to the title
         plt.title("SLOPE ANGLES\nUpper bound: {}\nLower bound: {}".format(upper_bound, lower_bound))
 
