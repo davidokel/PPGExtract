@@ -3,31 +3,13 @@ from support_code.data_methods import normalise_data, get_signal_slopes
 import numpy as np
 import scipy.signal as sp
 from operator import itemgetter
+from scipy.signal import peak_widths
 
 def get_pulses(data,fs=100,visualise=False,debug=False):
     normalised_data = normalise_data(data,fs)
 
-    if debug:
-        plt.subplot(2,1,1)
-        plt.title("Raw Data")
-        plt.plot(data)
-        plt.subplot(2,1,2)
-        plt.title("Normalised Data")
-        plt.plot(normalised_data)
-        plt.show()
-    
     # Filter data using savgol filter
     data_savgol = sp.savgol_filter(normalised_data, 75, 5)
-
-    if debug:
-        # Plot a subplot with the normalised data and the filtered data
-        plt.subplot(2,1,1)
-        plt.title("Normalised Data")
-        plt.plot(normalised_data)
-        plt.subplot(2,1,2)
-        plt.title("Filtered Data")
-        plt.plot(data_savgol)
-        plt.show()
         
     # Calculate the first and second derivative of the data
     # Using np.gradient() to calculate the first derivative and second derivative
@@ -38,9 +20,6 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     # Filter d1 and d2 using savgol filter
     d1_norm_data_filtered = sp.savgol_filter(d1_norm_data, 47, 5)
     d2_norm_data_filtered = sp.savgol_filter(d2_norm_data, 47, 5)
-
-    # Median of the d1_norm_data_filtered
-    d2_norm_data_filtered_median = np.median(d2_norm_data)
     
     # CALCULATING THE CROSSING POINTS (FIRST AND SECOND DERIVATIVE)
     diff_norm_data = d1_norm_data_filtered - d2_norm_data_filtered
@@ -57,17 +36,9 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     diff_savgol_data = d1_savgol_data - d2_savgol_data
     crossings_savgol_data = np.where(np.gradient(np.sign(diff_savgol_data)))[0]
 
-    # Plot the data and the crossings
-    if debug:
-        plt.plot(data_savgol)
-        plt.title("CROSSINGS")
-        plt.plot(crossings_savgol_data, data_savgol[crossings_savgol_data], "gx")
-        plt.show()
-
     # Finding the peaks from the crossings
     peaks = []
     troughs = []
-    notches = []
     peak_points = {}
 
     ##############################
@@ -81,7 +52,7 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         for i in range(1, len(crossings_savgol_data)-1):
             pre_data_slope = get_signal_slopes(data_savgol, crossings_savgol_data[i-1], crossings_savgol_data[i])
             post_data_slope = get_signal_slopes(data_savgol, crossings_savgol_data[i], crossings_savgol_data[i+1])
-
+            
             # If the slope of the data before the crossing is positive and the slope of the data after the crossing is negative then the crossing is a peak
             if pre_data_slope > 0 and post_data_slope < 0:
                 peaks.append(crossings_savgol_data[i])
@@ -99,24 +70,30 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
         peaks.pop(-1)
     
     if debug:
-        plt.plot(data_savgol)
-        plt.title("CLASSIFY PEAKS AND TROUGHS")
-        plt.plot(peaks, data_savgol[peaks], "gx")
-        plt.plot(troughs, data_savgol[troughs], "rx")
-        # Plot the first and second derivative on the same plot
-        plt.plot(d1_savgol_data*5)
-        plt.plot(d2_savgol_data*5)
-        # Plot the third derivative on the same plot
-        plt.plot(np.gradient(d2_savgol_data)*5)
-
+        # Define two subplots
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+        
+        # In the first one plot the savgold filtered data and the crossings
+        ax1.plot(data_savgol)
+        ax1.plot(crossings_savgol_data, data_savgol[crossings_savgol_data], "gx")
+        ax1.set_title("Filtered Data and Crossings")
+        
+        # In the second subplot plot the first and second derivative of the savgol filtered data multiplied by 5, the savgold filtered data and the peaks and troughs
+        ax2.plot(data_savgol)
+        ax2.plot(peaks, data_savgol[peaks], "gx")
+        ax2.plot(troughs, data_savgol[troughs], "rx")
+        ax2.set_title("Filtered Data (Classified Peaks and Troughs)")
+        
         plt.show()
 
     # Generate a dictionary called peak_points for storing peak information
     peak_points = {}
-    search_indexes = []
 
     # Iterate over the peaks
     for i in range(0, len(peaks)):
+
+        """diff_data = normalised_data - np.mean(normalised_data)
+        crossings_data = np.where(np.gradient(np.sign(diff_data)))[0]"""
         # For the current peak, find the crossings_data which is closest to the left of the peak
         all_crossings_pre = crossings_data[crossings_data < peaks[i]]
         # Check that there are crossings before the peak
@@ -175,7 +152,16 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
                 pulse_onset_search = max(left_points)
                 pulse_end_search = min(right_points)
 
-                # Get distance between the left_crossing and the centroid
+                # Get the width of the pulse
+                pulse_width = int(abs(left_crossing - right_crossing))
+
+                pulse_onset_search_start = int(pulse_onset_search - pulse_width)
+                pulse_onset_search_end = left_crossing
+
+                pulse_end_search_start = right_crossing
+                pulse_end_search_end = int(pulse_end_search + pulse_width)
+
+                """# Get distance between the left_crossing and the centroid
                 distance_left_crossing_centroid = int(abs(pulse_centroid - left_crossing))
                 # Get distance between the right_crossing and the centroid
                 distance_right_crossing_centroid = int(abs(pulse_centroid - right_crossing))
@@ -184,13 +170,7 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
                 pulse_onset_search_end = left_crossing
 
                 pulse_end_search_start = right_crossing
-                pulse_end_search_end = int(pulse_end_search + distance_right_crossing_centroid)
-
-                # Adding elements to search_indexes
-                search_indexes.append(pulse_onset_search_start)
-                search_indexes.append(pulse_onset_search_end)
-                search_indexes.append(pulse_end_search_start)
-                search_indexes.append(pulse_end_search_end)
+                pulse_end_search_end = int(pulse_end_search + distance_right_crossing_centroid)"""
             
                 # Define the search space within the normalised_data
                 onset_search_space = normalised_data[pulse_onset_search_start:pulse_onset_search_end]
@@ -206,184 +186,81 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
                 # Get the index of the maximum value between the pulse_onset and pulse_end
                 pulse_peak = np.argmax(normalised_data[pulse_onset:pulse_end]) + pulse_onset
 
+                """if debug == True:
+                    plt.plot(normalised_data)
+                    plt.plot(pulse_onset, normalised_data[pulse_onset], "ro")
+                    plt.plot(pulse_end, normalised_data[pulse_end], "ro")
+                    plt.plot(pulse_peak, normalised_data[pulse_peak], "go")
+                    plt.plot(pulse_centroid, normalised_data[pulse_centroid], "bo")
+                    # Plot the left and right crossings
+                    plt.plot(left_crossing, normalised_data[left_crossing], "yo")
+                    plt.plot(right_crossing, normalised_data[right_crossing], "yo")
+                    # Plot the search spaces as vertical dashed lines
+                    plt.axvline(x=pulse_onset_search_start, color="k", linestyle="--")
+                    plt.axvline(x=pulse_onset_search_end, color="k", linestyle="--")
+                    plt.axvline(x=pulse_end_search_start, color="k", linestyle="--")
+                    plt.axvline(x=pulse_end_search_end, color="k", linestyle="--")
+                    plt.plot(np.mean(normalised_data), "k--")
+                    plt.show()"""
+                    
+
                 # Update the peak_points dictionary with the pulse_onset, pulse_end and pulse_peak
+                peak_points[key]["Peak"] = pulse_peak
+                peak_points[key]["Relative_peak"] = pulse_peak - pulse_onset
+                peak_points[key]["Raw_pulse_data"] = data[pulse_onset:pulse_end]
+                peak_points[key]["Norm_pulse_data"] = normalised_data[pulse_onset:pulse_end]
                 peak_points[key]["Pre_peak"] = pulse_onset
                 peak_points[key]["Post_peak"] = pulse_end
-                peak_points[key]["Pulse_peak"] = pulse_peak
-
-                # Calculate the peak prominence
-                prominence = sp.peak_prominences(normalised_data, [pulse_peak])[0]
-                # Calculate the peak width
-                width = sp.peak_widths(normalised_data, [pulse_peak], rel_height=0.5)[0]
-                # Add the width to the dictionary
-                peak_points[key]["Width"] = width
-                # Add the prominence to the dictionary
-                peak_points[key]["Prominence"] = prominence
         else:
             continue
 
-    # Get all the pre and post peak points from the dictionary
-    # Get a list of all "Pre_peak" and "Post_peak" keys from the dictionary using itemgetter
-    pre_peaks = list(map(itemgetter("Pre_peak"), peak_points.values()))
-    post_peaks = list(map(itemgetter("Post_peak"), peak_points.values()))
-    # Get a list of all "Pulse_peak" keys from the dictionary using itemgetter
-    pulse_peak_keys = list(map(itemgetter("Pulse_peak"), peak_points.values()))
-    # Get a list of all "Pulse_centroid" keys from the dictionary using itemgetter
-    pulse_centroid_keys = list(map(itemgetter("Pulse_centroid"), peak_points.values()))
-    # Get a list of all "Prominence" keys from the dictionary using itemgetter
-    prominences = list(map(itemgetter("Prominence"), peak_points.values()))
-    # Get a list of all "Width" keys from the dictionary using itemgetter
-    widths = list(map(itemgetter("Width"), peak_points.values()))
-    # Combine the pre and post peaks list
-    pre_post_peaks = pre_peaks + post_peaks
+    # Use itemgetter to get the "Peak" value from the peak_points dictionary
+    peak_points_values = list(map(itemgetter("Peak"), peak_points.values()))
+    # Use itemgetter to get the "Pre_peak" value from the peak_points dictionary
+    peak_points_pre_peak_values = list(map(itemgetter("Pre_peak"), peak_points.values()))
+    # Use itemgetter to get the "Post_peak" value from the peak_points dictionary
+    peak_points_post_peak_values = list(map(itemgetter("Post_peak"), peak_points.values()))
+    # Use itemgetter to get the "Pulse_centroid" value from the peak_points dictionary
+    peak_points_pulse_centroid_values = list(map(itemgetter("Pulse_centroid"), peak_points.values()))
+    # Combine the peak_points_pre_peak_values and peak_points_post_peak_values
+    peak_points_pre_post_values = peak_points_pre_peak_values + peak_points_post_peak_values
 
-    # Calculate the differences in x-coordinates (indices)
-    delta_x = np.diff(pulse_peak_keys)
-
-    # Calculate the differences in y-coordinates (amplitudes)
-    delta_y = np.diff(normalised_data[pulse_peak_keys])
-
-    # Perform the slope angle calculation
-    slope_angles = np.zeros_like(delta_x, dtype=float)  # Initialize an array for slope angles
-
-    nonzero_indices = delta_x != 0  # Get indices where delta_x is non-zero
-    slope_angles[nonzero_indices] = np.arctan(delta_y[nonzero_indices] / delta_x[nonzero_indices])
-
-    # Convert the slope angles from radians to degrees if needed
-    slope_angles = np.degrees(slope_angles)
-
-    # Get the mean of the slope angles
-    mean_slope_angle = np.mean(slope_angles)
-
-    # Get the standard deviation of the slope angles
-    std_slope_angle = np.std(slope_angles)
-
-    # Define the upper and lower bounds for the slope angles
-    upper_bound = mean_slope_angle + 2 * (std_slope_angle)
-    lower_bound = mean_slope_angle - 2 * (std_slope_angle)
-
-    # Calculate the mean of the prominences
-    mean_prominence = np.mean(prominences)
-
-    # Calculate the standard deviation of the prominences
-    std_prominence = np.std(prominences)
-
-    # Define the upper and lower bounds for the prominences
-    upper_bound_prominence = mean_prominence + 2 * (std_prominence)
-    lower_bound_prominence = mean_prominence - 2 * (std_prominence)
-
-    # Calculate the inter-peak distances between the pulse peaks
-    inter_peak_distances = np.diff(pulse_peak_keys)
-
-    # Calculate the upper and lower bounds for the inter-peak distances
-    upper_bound_inter_peak_distance = np.mean(inter_peak_distances) + 2 * (np.std(inter_peak_distances))
-    lower_bound_inter_peak_distance = np.mean(inter_peak_distances) - 2 * (np.std(inter_peak_distances))
-
-    # Calculate the mean of the widths
-    mean_width = np.mean(widths)
-
-    # Calculate the standard deviation of the widths
-    std_width = np.std(widths)
-
-    # Define the upper and lower bounds for the widths
-    upper_bound_width = mean_width + 2 * (std_width)
-    lower_bound_width = mean_width - 2 * (std_width)
-    
-    from matplotlib_venn import venn4
-
-    anomal_peaks = []
-    # Reset the boolean values
-    slope = True
-    amp = True
-    interval = True
-    width = True
-
-    slope_values = []
-    amp_values = []
-    interval_values = []
-    width_values = []
-
-    # Iterate over the slope_angles
-    for i in range(len(slope_angles)):
-        # Check if the slope angle is within the bounds
-        if slope_angles[i] > upper_bound or slope_angles[i] < lower_bound:
-            slope = False
-            slope_values.append(False)
-        if prominences[i] > upper_bound_prominence or prominences[i] < lower_bound_prominence:
-            amp = False
-            amp_values.append(False)
-        if inter_peak_distances[i] > upper_bound_inter_peak_distance or inter_peak_distances[i] < lower_bound_inter_peak_distance:
-            interval = False
-            interval_values.append(False)
-        if widths[i] > upper_bound_width or widths[i] < lower_bound_width:
-            width = False
-            width_values.append(False)
-
-        # Apply a weighted majority vote
-        # Example weights for each feature
-        weight_slope = 0.5
-        weight_amp = 0.3
-        weight_interval = 0.3
-        weight_width = 0.3
-
-        # Create a list of boolean values and corresponding weights
-        boolean_values = [slope, amp, interval, width]
-        weights = [weight_slope, weight_amp, weight_interval, weight_width]
-
-        # Calculate the weighted sum
-        weighted_sum = sum(w * v for w, v in zip(weights, boolean_values))
-
-        # Check if the weighted sum is less than half the total weight
-        if weighted_sum < sum(weights) / 2:
-            # Remove the peak from the dictionary
-            anomal_peaks.append(pulse_peak_keys[i])
-
-        # Reset the boolean values
-        slope = True
-        amp = True
-        interval = True
-        width = True
-        
+    # If debug is True
     if debug == True:
-        # Add title
-        # Create a subplot of two plots stacked on top of each other
-        plt.subplot(2,1,1)
-        plt.title("PULSE ONSET AND END")
         plt.plot(normalised_data)
         plt.plot(data_savgol)
-        # Plot the current peak
+        # plot the np.mean of the normalised_data as a black dashed line
+        plt.axhline(y=np.mean(normalised_data), color="k", linestyle="--")
+        plt.plot(crossings_data, normalised_data[crossings_data], "ko")
         plt.plot(peaks, data_savgol[peaks], "gx")
-        # Plot the candidate peak as a green dot on the norm data
-        plt.plot(pulse_peak_keys, normalised_data[pulse_peak_keys], "go")
-        # Plot the anomaly peaks as orange dots on the norm data
-        plt.plot(anomal_peaks, normalised_data[anomal_peaks], "yo")
-        # Plotting crossings_data as red dots
-        plt.plot(pre_peaks, normalised_data[pre_peaks], "ro")
-        plt.plot(post_peaks, normalised_data[post_peaks], "ro")
-        # Plot crossings_norm_data as yellow dots
-        #plt.plot(crossings_norm_data, d1_norm_data_filtered[crossings_norm_data], "yo")
-        # Plot the pulse_centroids as blue dots
-        plt.plot(pulse_centroid_keys, d1_norm_data_filtered[pulse_centroid_keys], "bo")
-        # Plot the d2_norm_data_filtered_median as a black horizontal line
-        plt.axhline(y=np.mean(normalised_data), color="k")
-        # Plot the d1_norm_data_filtered
-        plt.plot(d1_norm_data_filtered)
-
-        # Plot the second subplot
-        plt.subplot(2,1,2)
-        # Plot the data's slope_angles as a histogram
-        plt.hist(slope_angles, bins=100)
-        # Plot the upper and lower bounds as vertical lines
-        plt.axvline(x=upper_bound, color="r")
-        plt.axvline(x=lower_bound, color="r")
-        # Create a title and add the upper and lower bounds to the title
-        plt.title("SLOPE ANGLES\nUpper bound: {}\nLower bound: {}".format(upper_bound, lower_bound))
-
+        plt.plot(peak_points_values, normalised_data[peak_points_values], "go")
+        plt.plot(peak_points_pre_post_values, normalised_data[peak_points_pre_post_values], "ro")
+        plt.plot(crossings_norm_data, d1_norm_data_filtered[crossings_norm_data], "yo")
+        plt.plot(peak_points_pulse_centroid_values, d1_norm_data_filtered[peak_points_pulse_centroid_values], "bo")
+        plt.plot(d1_norm_data_filtered, "g-")
+        plt.plot(d2_norm_data_filtered, "r-")
         plt.show()
 
-        plt.plot(normalised_data)
-        plt.plot(pulse_peak_keys, normalised_data[pulse_peak_keys], "go")
-        plt.plot(pre_peaks, normalised_data[pre_peaks], "ro")
-        plt.plot(post_peaks, normalised_data[post_peaks], "ro")
-        plt.title("Detected peaks and troughs")
+    if visualise == True:
+        # Create two subplots and stack them vertically
+        fig, axs = plt.subplots(2, 1, sharex=True)
+
+        # Plot the data
+        axs[0].set_title("Raw Data")
+        # Convert data from a list to a numpy array
+        plot_data = np.array(data)
+        # Multiply the data by -1 to invert the data
+        plot_data = plot_data * -1
+        # Add the content to each subplot (replace with your own data)
+        axs[0].plot(plot_data)
+        
+        # Plot the data
+        axs[1].set_title("Normalised Data and Detected Pulses")
+        # Add the content to each subplot (replace with your own data)
+        axs[1].plot(normalised_data)
+        # Plot the peak_points_values on the data as green dots
+        axs[1].plot(peak_points_values, normalised_data[peak_points_values], "go")
+        # Plot the peak_points_pre_post_values on the data as red dots
+        axs[1].plot(peak_points_pre_post_values, normalised_data[peak_points_pre_post_values], "ro")
+        
         plt.show()
