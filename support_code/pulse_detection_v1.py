@@ -97,7 +97,7 @@ def get_pulses(data,fs=100,visualise=False,debug=False):
     peaks_raw = []
     troughs_raw = []
 
-    search_space = int(fs*0.25)
+    search_space = int(fs*0.35)
 
     # Iterate over the peaks and troughs
     for i in range(0, len(peaks)):
