@@ -5,7 +5,7 @@ import support_code.data_methods as data_methods
 from scipy.integrate import trapz
     
 def get_aucs(pulse_data, visualise=0):
-    data = pulse_data["norm_pulse_data"]
+    data = pulse_data["raw_pulse_data"]
     peak = pulse_data["Relative_peak"]
     pre = 0
     post = len(pulse_data["norm_pulse_data"])

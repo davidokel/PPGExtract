@@ -6,7 +6,7 @@ from scipy.stats import linregress
 from scipy.integrate import trapz
 
 def get_half_widths(pulse_data, visualise=0):
-    data = pulse_data["norm_pulse_data"]
+    data = pulse_data["raw_pulse_data"]
     peak = np.array([pulse_data["Relative_peak"]])
 
     # Forcing positive values by adding 1

@@ -6,7 +6,7 @@ from scipy.stats import linregress
 from scipy.integrate import trapz
 
 def get_slopes(pulse_data, visualise=0):
-    data = pulse_data["norm_pulse_data"]
+    data = pulse_data["raw_pulse_data"]
     peak = pulse_data["Relative_peak"]
     pre = 0
     post = len(pulse_data["norm_pulse_data"])

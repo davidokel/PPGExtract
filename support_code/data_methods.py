@@ -13,7 +13,7 @@ def normalise_data(data,fs):
         dc = sp.sosfiltfilt(sos_dc, data, axis= -1, padtype='odd', padlen=min_padlen)
     
     # Normalising and scaling the signal to a more manageable range
-    normalised = 10*(-(ac/dc))
+    normalised = 10*(ac/dc)
 
     return normalised
 

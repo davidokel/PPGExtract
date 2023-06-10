@@ -4,10 +4,9 @@ from support_code.pulse_detection import get_pulses
 import numpy as np
 import pickle
 from feature_extraction_code.features import get_features
-from signal_quality_classifiers.classify_pulses import get_pulse_predictions
 import datetime
 
-def extraction_protocol(data, fs, window_size, save_name, visualise = 0, debug = 0):
+def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = 0, debug = 0):
     # Calculate the total number of windows
     num_windows = math.ceil(len(data)/window_size)
 
@@ -34,8 +33,7 @@ def extraction_protocol(data, fs, window_size, save_name, visualise = 0, debug =
         pulses.update(peak_points)
         peak_points = get_features(peak_points, visualise=visualise)
         pulses.update(peak_points)
-        #pulses = get_pulse_predictions(pulses, "signal_quality_classifiers/random_forest_classifier.pkl")
-
+    
         # Convert the peaks and troughs to numpy arrays
         peaks = np.array(peaks, dtype='i')
         troughs = np.array(troughs, dtype='i')
