@@ -1,6 +1,5 @@
 import pandas as pd
 from protocols import extraction_protocol
-from support_code.pulse_detection import get_pulses
 
 # Use this file to call upon other files and functions for execution
 test_dataset = pd.read_csv("data/test_data.csv")
