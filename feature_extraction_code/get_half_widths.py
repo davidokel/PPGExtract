@@ -1,9 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as sp
-import support_code.data_methods as data_methods
-from scipy.stats import linregress
-from scipy.integrate import trapz
 
 def get_half_widths(pulse_data, visualise=0):
     data = pulse_data["raw_pulse_data"]
@@ -28,10 +25,6 @@ def get_half_widths(pulse_data, visualise=0):
             plt.plot(data)
             plt.hlines(*half_widths_res[1:], color="C2", label="half peak widths")
             plt.legend(loc="upper left")
-
-            manager = plt.get_current_fig_manager()
-            manager.window.showMaximized()
-            #plt.axis('off')
             plt.show()
     
         return float(np.nanmedian(half_widths))

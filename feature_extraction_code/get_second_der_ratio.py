@@ -1,9 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.signal as sp
-import support_code.data_methods as data_methods
-from scipy.stats import linregress
-from scipy.integrate import trapz
 
 def get_second_der_ratio(pulse_data):
     data = pulse_data["raw_pulse_data"]
