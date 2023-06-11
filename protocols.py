@@ -6,7 +6,7 @@ import pickle
 from feature_extraction_code.features import get_features
 import datetime
 
-def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = 0, debug = 0):
+def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = False, debug = False, z_score_threshold = 3, z_score_detection = True):
     # Calculate the total number of windows
     num_windows = math.ceil(len(data)/window_size)
 
@@ -22,7 +22,8 @@ def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = 0
         if end > len(data):
             end = len(data)
 
-        peak_points, peaks, troughs = get_pulses(list(data[start:end]), fs, visualise = visualise, debug = debug)
+        peak_points, peaks, troughs = get_pulses(list(data[start:end]), fs=fs, visualise=visualise, debug=debug, z_score_threshold=z_score_threshold, z_score_detection=z_score_detection)
+
         peak_points = {key + start: value for key, value in peak_points.items()}
         for key in peak_points:
             peak_points[key]["Peak"] += start

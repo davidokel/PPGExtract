@@ -1,8 +1,10 @@
 import pandas as pd
-from feature_extraction_code.protocols import extraction_protocol
+from protocols import extraction_protocol
+from support_code.pulse_detection import get_pulses
 
 # Use this file to call upon other files and functions for execution
-test_data = pd.read_csv("Data/test_data.csv")
-extraction_protocol(test_data, 100, 6000, "test", visualise=0, debug=1)
-
+test_dataset = pd.read_csv("data/test_data.csv")
+test_data = test_dataset["Data"]
+test_data = test_data * -1
+extraction_protocol(test_dataset, test_data, 100, 6000, "test", visualise=1, debug=0)
 
