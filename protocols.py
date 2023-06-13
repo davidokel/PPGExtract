@@ -32,7 +32,7 @@ def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = F
         
         peak_points = get_sqis(peak_points, fs)
         pulses.update(peak_points)
-        peak_points = get_features(peak_points, visualise=visualise)
+        peak_points = get_features(list(data[start:end]),peak_points, visualise=visualise)
         pulses.update(peak_points)
     
         # Convert the peaks and troughs to numpy arrays

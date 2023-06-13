@@ -46,20 +46,6 @@ def get_slopes(pulse_data, visualise=0):
         upslope_downslope_ratio = upslope / downslope if downslope != 0 else np.nan
         features['upslope_downslope_ratio'] = upslope_downslope_ratio
 
-        """# PREPOSTSLOPE_DOWNSLOPE_RATIO
-        # This ratio can give an indication of how much of the overall slope of the pulse is due to the rising edge (onset to peak) versus the falling edge (peak to end). 
-        # If the ratio is greater than 1, then the rising edge is steeper than the falling edge, and if the ratio is less than 1, then the falling edge is steeper than the rising edge. 
-        # This could be useful for comparing different pulses to see if there are consistent differences in the way they rise and fall.
-        prepostslope_downslope_ratio = onset_end_slope / downslope if downslope != 0 else np.nan
-        features['prepostslope_downslope_ratio'] = prepostslope_downslope_ratio
-
-        # UPSLOPE_PREPOSTSLOPE_RATIO
-        # This ratio can give an indication of the relative steepness of the rising edge versus the entire pulse (onset to end). 
-        # If the ratio is greater than 1, then the rising edge is steeper than the entire pulse, and if the ratio is less than 1, then the rising edge is less steep than the entire pulse. 
-        # This could be useful for comparing different pulses to see if there are consistent differences in the steepness of the rising edge relative to the entire pulse.
-        upslope_prepostslope_ratio = upslope / onset_end_slope if onset_end_slope != 0 else np.nan
-        features['upslope_prepostslope_ratio'] = upslope_prepostslope_ratio"""
-
         # PULSE_LENGTH_HEIGHT_RATIO
         # This ratio can give an indication of the overall shape of the pulse, specifically how long it takes to return to baseline after reaching its peak.
         # If the ratio is high, then the pulse takes a relatively long time to return to baseline after reaching its peak, indicating a broader shape. 
