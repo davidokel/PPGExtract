@@ -123,7 +123,7 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     normalised_data = normalise_data(data, fs)
     
     # Filtering the data using a 3Hz, 2nd order lowpass Butterworth filter
-    sos_ac = sp.butter(2, 3, btype='lowpass', analog=False, output='sos', fs=fs)
+    sos_ac = sp.butter(2, 5, btype='lowpass', analog=False, output='sos', fs=fs)
     try:
         data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=None)
     except ValueError:
