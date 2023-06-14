@@ -1,41 +1,84 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-def get_peak_times(pulse_data, visualise=0):
-    data = pulse_data["raw_pulse_data"]
-    peak = pulse_data["Relative_peak"]
-    pre = 0
-    post = len(pulse_data["norm_pulse_data"])
+def get_peak_times(window_pulse_data, visualise=0):
+    """
+    Function to extract rise and decay times from pulse data.
 
-    rise_times = []
-    decay_times = []
+    Parameters:
+    - window_pulse_data: dictionary containing pulse data for each window
+    - visualise: flag to indicate whether to visualize the pulse data
 
-    if peak:
-        rise_time = abs(peak-pre)
-        rise_times.append(rise_time)
+    Returns:
+    - Median rise time.
+    - Median decay time.
+    - Median rise/decay time ratio.
 
-        decay_time = abs(post-peak)
-        decay_times.append(decay_time)
+    Error Handling:
+    - If the window_pulse_data is empty, the function returns NaN for all outputs.
+    """
 
-        if visualise == 1:
-            plt.subplot(2,1,1)
-            plt.title("Rise times")
-            plt.plot(data)
-            plt.annotate(text = "", xy=(peak,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
-            plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[pre]), arrowprops=dict(arrowstyle='<->'))
-            #plt.axis('off')
+    ##################################################################
+    # Initialising lists to store the extracted RISE/DECAY time data #
+    ##################################################################
+    rise_times, decay_times, rise_decay_time_ratios = [], [], []
+
+    # Check that window_pulse_data is not empty
+    if window_pulse_data:
+        # Iterating over the keys of the dictionary, every key represents a pulse within the window
+        for key in window_pulse_data:
+            #######################
+            # Defining pulse data #
+            #######################
+            pulse_data = window_pulse_data[key]
+            data = pulse_data["raw_pulse_data"]
+            peak = pulse_data["Relative_peak"]
+            pre = 0
+            post = len(data)
             
-            plt.subplot(2,1,2)
-            plt.title("Decay times")
-            plt.plot(data)
-            plt.annotate(text = "", xy=(peak,data[-1]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
-            plt.annotate(text = "", xy=(post,data[-1]), xytext=(peak,data[-1]), arrowprops=dict(arrowstyle='<->'))
-        
-            manager = plt.get_current_fig_manager()
-            manager.window.showMaximized()
-            #plt.axis('off')
-            plt.show()
+            ######################################
+            # Calculate rise time and decay time #
+            ######################################
+            if peak:
+                # Calculate rise time as the difference between the peak and the pre-peak
+                rise_time = abs(peak - pre)
+                rise_times.append(rise_time)
 
-        return float(np.nanmedian(rise_times)), float(np.nanmedian(decay_times))
+                # Calculate decay time as the difference between the peak and the post-peak
+                decay_time = abs(post - peak)
+                decay_times.append(decay_time)
+
+                # Calculate rise/decay time ratio
+                rise_decay_time_ratio = rise_time / decay_time
+                rise_decay_time_ratios.append(rise_decay_time_ratio)
+                
+                ############
+                # Plotting #
+                ############
+                if visualise == 1:
+                    plt.subplot(2,1,1)
+                    plt.title("Rise times")
+                    plt.plot(data)
+                    plt.annotate(text="", xy=(peak,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
+                    plt.annotate(text="", xy=(pre,data[pre]), xytext=(peak,data[pre]), arrowprops=dict(arrowstyle='<->'))
+                    
+                    plt.subplot(2,1,2)
+                    plt.title("Decay times")
+                    plt.plot(data)
+                    plt.annotate(text="", xy=(peak,data[-1]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='-'))
+                    plt.annotate(text="", xy=(post,data[-1]), xytext=(peak,data[-1]), arrowprops=dict(arrowstyle='<->'))
+                    
+                    manager = plt.get_current_fig_manager()
+                    manager.window.showMaximized()
+                    plt.show()
+
+                    # Get the user input to see if they want to move onto the next visualisation or stop visualising
+                    user_input = input("Press enter to continue, or type 'stop' to stop visualising: ")
+                    if user_input == "stop":
+                        visualise = 0
+
+        # Return the nan-median rise time, decay time and rise/decay time ratio
+        return float(np.nanmedian(rise_times)), float(np.nanmedian(decay_times)), float(np.nanmedian(rise_decay_time_ratios))
+    # Return NaN if no peaks are found
     else:
-        return np.NaN, np.NaN
+        return np.NaN, np.NaN, np.NaN

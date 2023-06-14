@@ -1,21 +1,63 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-def get_beat_features(window_pulse_data, visualise=0):
-    peaks = [window_pulse_data[key]["Peak"] for key in window_pulse_data]
+def get_beat_features(window_pulse_data, debug = False):
+    """
+    Calculate beat-based features using the provided window data and window pulse data.
 
-    # Calculate the number of pulses per window
-    num_pulses = len(peaks)
+    Args:
+    - window_data: Data related to the window.
+    - window_pulse_data: Pulse data within the window.
+    - visualise: Flag to enable visualisation (default: False).
+    - debug: Flag to enable debug output (default: False).
 
-    # Calculate the interbeat interval
-    ibi = np.diff(peaks)
+    Returns:
+    - Tuple of beat-based features: (num_beats, median_ibi, std_ibi, cv_ibi).
+    - If no peaks are found, returns (NaN, NaN, NaN, NaN).
 
-    # Calculate the mean interbeat interval
-    mean_ibi = np.mean(ibi)
+    Error Handling:
+    - If the window_pulse_data is empty, the function returns NaN for all outputs.
+    """
 
-    # Calculate the standard deviation of the interbeat interval
-    std_ibi = np.std(ibi)
+    # Check that window_pulse_data is not empty
+    if window_pulse_data:
+        peaks = [window_pulse_data[key]["Peak"] for key in window_pulse_data]
+        peaks.sort()
 
-    # Calculate the coefficient of variation of the interbeat interval
-    cv_ibi = std_ibi/mean_ibi
-    
+        ###################################
+        # Calculating beat based features #
+        ###################################
+
+        # Calculate the number of pulses per window
+        num_beats = len(peaks)
+
+        # Calculate the interbeat interval
+        ibi = np.diff(peaks)
+
+        # Calculate the median interbeat interval
+        median_ibi = np.median(ibi)
+
+        # Calculate the standard deviation of the interbeat interval
+        std_ibi = np.std(ibi)
+
+        """Calculate the coefficient of variation of the interbeat interval.
+        By using the median interbeat interval in both the numerator and denominator, 
+        the relative variability of the interbeat intervals based on the central tendency 
+        provided by the median is being accessed. This approach takes into account the 
+        spread of the data around the median (instead of the mean), making it less influenced by outliers or extreme values
+        providing a measure of relative variability that is more resistant to the presence of outliers."""
+        cv_ibi = std_ibi/median_ibi
+
+        if debug:
+            print("Number of beats: " + str(num_beats))
+            print("Median IBI: " + str(median_ibi))
+            print("Standard deviation of IBI: " + str(std_ibi))
+            print("Coefficient of variation of IBI: " + str(cv_ibi))
+                            
+        # Return the beat based features
+        return num_beats, median_ibi, std_ibi, cv_ibi
+    else:
+        # Return NaN if no peaks are found
+        return np.NaN, np.NaN, np.NaN, np.NaN
+        
     
