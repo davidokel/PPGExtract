@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
+import math
+import matplotlib.patches as patches
 
 def get_slopes(window_pulse_data, visualise=False, debug=False):
     """
@@ -19,7 +21,6 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
     Note: If the window_pulse_data is empty, the function returns None.
 
     """
-
     ###########################################################
     # Initialising a dictionary and lists to store SLOPE data #
     ###########################################################
@@ -34,9 +35,9 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
             # Defining pulse data #
             #######################
             data = window_pulse_data[key]["raw_pulse_data"]
-            peak = [window_pulse_data[key]["Relative_peak"]]
+            peak = window_pulse_data[key]["Relative_peak"]
             pre = 0
-            post = len(data)
+            post = len(data) -1
             pulse_length = post - pre
 
             if peak:
@@ -55,15 +56,19 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
                 ###########
                 # The upslope measures the rate of change of the pulse during the rising phase, from the onset to the peak. 
                 # This can give an indication of how quickly the pulse is rising and how steep the rising edge is.
+                # Calculate the angle of the line between the onset and the peak against the horizontal axis
+                # The angle is in radians, so convert to degrees
                 upslope, _, _, _, _ = linregress([pre,peak],[data[pre],data[peak]])
+                upslope = (upslope * 100)
                 upslopes.append(upslope)
-                
+
                 #############
                 # DOWNSLOPE #
                 #############
                 # The downslope measures the rate of change of the pulse during the falling phase, from the peak to the end of the pulse. 
                 # This can give an indication of how quickly the pulse is falling and how steep the falling edge is.
                 downslope, _, _, _, _ = linregress([peak,post],[data[peak],data[-1]])
+                downslope = (downslope * 100)
                 downslopes.append(downslope)
 
                 ###################
@@ -124,15 +129,34 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
                 ############
                 if visualise:
                     plt.subplot(2,1,1)
-                    plt.title("Upslopes")
+                    plt.title("Upslope & Downslope Lengths (samples)")
                     plt.plot(data)
-                    plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle='<->'))
+                    # Annotate the plot with the upslope length, add the length to the arrow as text
+                    plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle= '<|-|>', color='green', lw=3, ls='--'), label="Upslope")
+                    plt.annotate(text = "", xy=(peak,data[peak]), xytext=(post,data[-1]), arrowprops=dict(arrowstyle= '<|-|>', color='red', lw=3, ls='--'), label="Downslope")
+                    # Get the x, y coordinates for the midpoint between the pre and peak, and the peak and post
+                    x1 = (pre + peak) / 2
+                    y1 = (data[pre] + data[peak]) / 2
+
+                    x2 = (peak + post) / 2
+                    y2 = (data[peak] + data[-1]) / 2
+
+                    # Add text within a box with a grey background to the midpoint between the pre and peak, and the peak and post with te upslope and downslope lengths
+                    plt.text(x1, y1, "Upslope Length: " + str(upslope_lengths[-1]), bbox=dict(facecolor='grey', alpha=0.5))
+                    plt.text(x2, y2, "Downslope Length: " + str(downslope_lengths[-1]), bbox=dict(facecolor='grey', alpha=0.5))
+
                     
                     plt.subplot(2,1,2)
-                    plt.title("Downslopes")
+                    plt.title("Upslope & Downslope (%)")
                     plt.plot(data)
-                    plt.annotate(text = "", xy=(peak,data[peak]), xytext=(post,data[-1]), arrowprops=dict(arrowstyle='<->'))
-                    #plt.axis('off')
+                    # Annotate the plot with the angles of the upslope and downslope
+                    plt.annotate(text = "", xy=(pre,data[pre]), xytext=(peak,data[peak]), arrowprops=dict(arrowstyle= '<|-|>', color='green', lw=3, ls='--'), label="Upslope")
+                    plt.annotate(text = "", xy=(peak,data[peak]), xytext=(post,data[-1]), arrowprops=dict(arrowstyle= '<|-|>', color='red', lw=3, ls='--'), label="Downslope")
+                    
+                    # Add text within a box with a grey background to the midpoint between the pre and peak, and the peak and post with te upslope and downslope angles
+                    plt.text(x1, y1, "Upslope (%): " + str(upslopes[-1]), bbox=dict(facecolor='grey', alpha=0.5))
+                    plt.text(x2, y2, "Downslope (%): " + str(downslopes[-1]), bbox=dict(facecolor='grey', alpha=0.5))
+
                     plt.show()
 
                     # Get the user input to see if they want to move onto the next visualisation or stop visualising

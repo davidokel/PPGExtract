@@ -58,7 +58,7 @@ def extraction_protocol(dataset, data, fs, window_size, save_name, visualise = F
     dataset["Troughs"] = troughs_list
     dataset.to_csv(save_name+"_"+date+".csv")
 
-def extraction_protocol_v2(dataset, data, fs, window_size, save_name, visualise = False, debug = False, z_score_threshold = 3, z_score_detection = True):
+def extraction_protocol_v2(dataset, data, fs, window_size, save_name, visualise = False, debug = False, z_score_threshold = 3, z_score_detection = True, derivative=0):
     # Calculate the total number of windows
     num_windows = math.ceil(len(data)/window_size)
 
@@ -74,13 +74,15 @@ def extraction_protocol_v2(dataset, data, fs, window_size, save_name, visualise 
         if end > len(data):
             end = len(data)
 
-        peak_points, peaks, troughs = get_pulses(list(data[start:end]), fs=fs, visualise=visualise, debug=debug, z_score_threshold=z_score_threshold, z_score_detection=z_score_detection)
+        peak_points, peaks, troughs = get_pulses(list(data[start:end]), fs=fs, visualise=visualise, debug=debug, z_score_threshold=z_score_threshold, z_score_detection=z_score_detection, derivative=derivative)
         peak_points = {key + start: value for key, value in peak_points.items()}
+        
         for key in peak_points:
             peak_points[key]["Peak"] += start
             peak_points[key]["Pre_peak"] += start
             peak_points[key]["Post_peak"] += start
         
+        sqis = get_sqis(peak_points, fs, visualise=visualise, debug=debug)
         peak_points = get_features_v2(list(data[start:end]),peak_points, visualise=visualise, debug=debug)
         pulses.update(peak_points)
     

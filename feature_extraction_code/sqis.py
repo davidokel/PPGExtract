@@ -3,7 +3,13 @@ import scipy.stats as stats
 import scipy.signal as sp
 import matplotlib.pyplot as plt
 
-def get_sqis(pulse_dictionary, fs, debug = False):
+def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
+
+    ##############################################################################
+    # Initialising a list dictionary and lists to store statistical and sqi data #
+    ##############################################################################
+    sqi_dictionary = {}
+    norm_means, norm_medians, norm_variances, raw_means, raw_medians, raw_variances, secder_norm_means, secder_norm_medians, secder_norm_variances, skews, kurts, snrs, zcrs, ents, pis = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
 
     for key in pulse_dictionary.keys():
         raw_pulse_data = pulse_dictionary[key]["raw_pulse_data"]
@@ -16,25 +22,7 @@ def get_sqis(pulse_dictionary, fs, debug = False):
         ent = get_entropy(norm_pulse_data)
         pi = get_pi(raw_pulse_data, fs)
 
-        # Create a dictionary with the sqis
-        pulse_dictionary[key]["norm_mean"] = np.mean(norm_pulse_data)
-        pulse_dictionary[key]["norm_median"] = np.median(norm_pulse_data)
-        pulse_dictionary[key]["norm_variance"] = np.var(norm_pulse_data)
-        pulse_dictionary[key]["raw_mean"] = np.mean(raw_pulse_data)
-        pulse_dictionary[key]["raw_median"] = np.median(raw_pulse_data)
-        pulse_dictionary[key]["raw_variance"] = np.var(raw_pulse_data)
-        pulse_dictionary[key]["secder_norm_mean"] = np.mean(np.diff(np.diff(norm_pulse_data)))
-        pulse_dictionary[key]["secder_norm_median"] = np.median(np.diff(np.diff(norm_pulse_data)))
-        pulse_dictionary[key]["secder_norm_variance"] = np.var(np.diff(np.diff(norm_pulse_data)))
-        pulse_dictionary[key]["skew"] = skew
-        pulse_dictionary[key]["kurt"] = kurt
-        pulse_dictionary[key]["snr"] = snr
-        pulse_dictionary[key]["zcr"] = zcr
-        pulse_dictionary[key]["ent"] = ent
-        pulse_dictionary[key]["pi"] = pi
-        pulse_dictionary[key]["class"] = "good"
-
-        if debug:
+        if visualise:
             plt.subplot(2,1,1)
             plt.title("Raw Pulse Data")
             plt.plot(raw_pulse_data)
@@ -43,6 +31,58 @@ def get_sqis(pulse_dictionary, fs, debug = False):
             plt.plot(norm_pulse_data)
             plt.show()
 
+        # Appending the statistical/sqi data to the lists
+        norm_means.append(np.mean(norm_pulse_data))
+        norm_medians.append(np.median(norm_pulse_data))
+        norm_variances.append(np.var(norm_pulse_data))
+        raw_means.append(np.mean(raw_pulse_data))
+        raw_medians.append(np.median(raw_pulse_data))
+        raw_variances.append(np.var(raw_pulse_data))
+        secder_norm_means.append(np.mean(np.gradient(np.gradient(norm_pulse_data))))
+        secder_norm_medians.append(np.median(np.gradient(np.gradient(norm_pulse_data))))
+        secder_norm_variances.append(np.var(np.gradient(np.gradient(norm_pulse_data))))
+        skews.append(skew)
+        kurts.append(kurt)
+        snrs.append(snr)
+        zcrs.append(zcr)
+        ents.append(ent)
+        pis.append(pi)
+        
+    # Appending the statistical/sqi data to the dictionary but calculating the nanmedian prior to adding
+    sqi_dictionary["norm_mean"] = np.nanmedian(norm_means)
+    sqi_dictionary["norm_median"] = np.nanmedian(norm_medians)
+    sqi_dictionary["norm_variance"] = np.nanmedian(norm_variances)
+    sqi_dictionary["raw_mean"] = np.nanmedian(raw_means)
+    sqi_dictionary["raw_median"] = np.nanmedian(raw_medians)
+    sqi_dictionary["raw_variance"] = np.nanmedian(raw_variances)
+    sqi_dictionary["secder_norm_mean"] = np.nanmedian(secder_norm_means)
+    sqi_dictionary["secder_norm_median"] = np.nanmedian(secder_norm_medians)
+    sqi_dictionary["secder_norm_variance"] = np.nanmedian(secder_norm_variances)
+    sqi_dictionary["skew"] = np.nanmedian(skews)
+    sqi_dictionary["kurt"] = np.nanmedian(kurts)
+    sqi_dictionary["snr"] = np.nanmedian(snrs)
+    sqi_dictionary["zcr"] = np.nanmedian(zcrs)
+    sqi_dictionary["ent"] = np.nanmedian(ents)
+    sqi_dictionary["pi"] = np.nanmedian(pis)
+
+    if debug:
+        # Plotting the length of each list and its calculated nanmedian
+        print("Length of norm_means: ", len(norm_means), " Calculated nanmedian: ", np.nanmedian(norm_means))
+        print("Length of norm_medians: ", len(norm_medians), " Calculated nanmedian: ", np.nanmedian(norm_medians))
+        print("Length of norm_variances: ", len(norm_variances), " Calculated nanmedian: ", np.nanmedian(norm_variances))
+        print("Length of raw_means: ", len(raw_means), " Calculated nanmedian: ", np.nanmedian(raw_means))
+        print("Length of raw_medians: ", len(raw_medians), " Calculated nanmedian: ", np.nanmedian(raw_medians))
+        print("Length of raw_variances: ", len(raw_variances), " Calculated nanmedian: ", np.nanmedian(raw_variances))
+        print("Length of secder_norm_means: ", len(secder_norm_means), " Calculated nanmedian: ", np.nanmedian(secder_norm_means))
+        print("Length of secder_norm_medians: ", len(secder_norm_medians), " Calculated nanmedian: ", np.nanmedian(secder_norm_medians))
+        print("Length of secder_norm_variances: ", len(secder_norm_variances), " Calculated nanmedian: ", np.nanmedian(secder_norm_variances))
+        print("Length of skews: ", len(skews), " Calculated nanmedian: ", np.nanmedian(skews))
+        print("Length of kurts: ", len(kurts), " Calculated nanmedian: ", np.nanmedian(kurts))
+        print("Length of snrs: ", len(snrs), " Calculated nanmedian: ", np.nanmedian(snrs))
+        print("Length of zcr: ", len(zcrs), " Calculated nanmedian: ", np.nanmedian(zcrs))
+        print("Length of ent: ", len(ents), " Calculated nanmedian: ", np.nanmedian(ents))
+        print("Length of pi: ", len(pis), " Calculated nanmedian: ", np.nanmedian(pis))
+        
     return pulse_dictionary
 
 def get_skew(data):
