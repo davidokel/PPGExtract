@@ -85,7 +85,7 @@ def z_score(feature_data, threshold):
     # Return a boolean array indicating values below the threshold
     return z_scores < threshold
 
-def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=False, z_score_detection = False):
+def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=False, z_score_detection = False, derivative=0):
     """
     Detects pulses in the given data using peak and trough detection.
 
@@ -118,10 +118,14 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     # Handling if z_score_threshold is not a positive number
     if z_score_threshold <= 0:
         raise ValueError("The z_score_threshold must be a positive number.")
+    # Handling if derivative is negative or not a whole number
+    if derivative < 0 or not isinstance(derivative, int):
+        raise ValueError("The derivative must be a positive whole number.")
     
-    # Normalising the data
-    normalised_data = normalise_data(data, fs)
-    
+    # If the derivative is greater than 0 and is a whole number, calculate the derivative of the data
+    if derivative > 0:
+        data = np.gradient(data, derivative)
+
     # Filtering the data using a 3Hz, 2nd order lowpass Butterworth filter
     sos_ac = sp.butter(2, 5, btype='lowpass', analog=False, output='sos', fs=fs)
     try:
@@ -129,6 +133,9 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     except ValueError:
         min_padlen = int((len(data) - 1) // 2)
         data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=min_padlen)
+
+    # Normalising the data
+    normalised_data = normalise_data(data, fs)
         
     # Calculating the moving average of the data using a 0.95 second window
     moving_average_data = np.convolve(data, np.ones((int(fs * 0.95),)) / int(fs * 0.95), mode='valid')
@@ -223,8 +230,7 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
         peak_points[key] = {
             "Peak": peaks[i],
             "Relative_peak": peaks[i] - pulse_onset,
-            "raw_pulse_data": data[pulse_onset:pulse_end],
-            "norm_pulse_data": normalised_data[pulse_onset:pulse_end],
+            "pulse_data": data[pulse_onset:pulse_end],
             "Pre_peak": pulse_onset,
             "Post_peak": pulse_end
         }

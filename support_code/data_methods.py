@@ -13,7 +13,9 @@ Functions:
 
 import numpy as np
 import scipy.signal as sp
+import scipy.stats as stat
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def dict_to_df(dictionary):
     """
@@ -55,8 +57,8 @@ def dict_to_df(dictionary):
 
     return df.reset_index(drop=True)
 
-def normalise_data(data, fs):
-    """
+"""def normalise_data(data, fs):
+    
     Normalizes the given data using bandpass and lowpass filtering techniques.
 
     Args:
@@ -68,7 +70,7 @@ def normalise_data(data, fs):
 
     Raises:
         ValueError: If an error occurs during filtering.
-    """
+    
     sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs)
     sos_dc = sp.butter(4, (0.2 / (fs / 2)), btype='lowpass', analog=False, output='sos', fs=fs)
     try:
@@ -81,7 +83,13 @@ def normalise_data(data, fs):
 
     normalised = 10 * (ac / dc)
 
-    return normalised
+    return normalised"""
+
+def normalise_data(data, fs):
+    min_val = np.min(data)
+    max_val = np.max(data)
+    normalised_data = (data - min_val) / (max_val - min_val)
+    return normalised_data
 
 def band_pass_filter(data, order, fs, low_cut, high_cut):
     """

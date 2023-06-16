@@ -9,38 +9,35 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
     # Initialising a list dictionary and lists to store statistical and sqi data #
     ##############################################################################
     sqi_dictionary = {}
-    norm_means, norm_medians, norm_variances, raw_means, raw_medians, raw_variances, secder_norm_means, secder_norm_medians, secder_norm_variances, skews, kurts, snrs, zcrs, ents, pis = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
+    raw_means, raw_medians, raw_variances, skews, kurts, snrs, zcrs, ents, pis = [], [], [], [], [], [], [], [], []
 
     for key in pulse_dictionary.keys():
-        raw_pulse_data = pulse_dictionary[key]["raw_pulse_data"]
-        norm_pulse_data = pulse_dictionary[key]["norm_pulse_data"]
+        pulse_data = pulse_dictionary[key]["pulse_data"]
 
-        skew = get_skew(norm_pulse_data)
-        kurt = get_kurt(norm_pulse_data)
-        snr = get_snr(norm_pulse_data)
-        zcr = get_zcr(norm_pulse_data,fs)
-        ent = get_entropy(norm_pulse_data)
-        pi = get_pi(raw_pulse_data, fs)
+        skew = get_skew(pulse_data)
+        kurt = get_kurt(pulse_data)
+        snr = get_snr(pulse_data)
+        zcr = get_zcr(pulse_data,fs)
+        ent = get_entropy(pulse_data)
+        pi = get_pi(pulse_data, fs)
 
+        ############
+        # Plotting #
+        ############
         if visualise:
-            plt.subplot(2,1,1)
             plt.title("Raw Pulse Data")
-            plt.plot(raw_pulse_data)
-            plt.subplot(2,1,2)
-            plt.title("Normalised Pulse Data")
-            plt.plot(norm_pulse_data)
+            plt.plot(pulse_data)
             plt.show()
 
+            # Get the user input to see if they want to move onto the next visualisation or stop visualising
+            user_input = input("Press enter to continue, or type 'stop' to stop visualising: ")
+            if user_input == "stop":
+                visualise = 0
+
         # Appending the statistical/sqi data to the lists
-        norm_means.append(np.mean(norm_pulse_data))
-        norm_medians.append(np.median(norm_pulse_data))
-        norm_variances.append(np.var(norm_pulse_data))
-        raw_means.append(np.mean(raw_pulse_data))
-        raw_medians.append(np.median(raw_pulse_data))
-        raw_variances.append(np.var(raw_pulse_data))
-        secder_norm_means.append(np.mean(np.gradient(np.gradient(norm_pulse_data))))
-        secder_norm_medians.append(np.median(np.gradient(np.gradient(norm_pulse_data))))
-        secder_norm_variances.append(np.var(np.gradient(np.gradient(norm_pulse_data))))
+        raw_means.append(np.mean(pulse_data))
+        raw_medians.append(np.median(pulse_data))
+        raw_variances.append(np.var(pulse_data))
         skews.append(skew)
         kurts.append(kurt)
         snrs.append(snr)
@@ -49,15 +46,9 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
         pis.append(pi)
         
     # Appending the statistical/sqi data to the dictionary but calculating the nanmedian prior to adding
-    sqi_dictionary["norm_mean"] = np.nanmedian(norm_means)
-    sqi_dictionary["norm_median"] = np.nanmedian(norm_medians)
-    sqi_dictionary["norm_variance"] = np.nanmedian(norm_variances)
-    sqi_dictionary["raw_mean"] = np.nanmedian(raw_means)
-    sqi_dictionary["raw_median"] = np.nanmedian(raw_medians)
-    sqi_dictionary["raw_variance"] = np.nanmedian(raw_variances)
-    sqi_dictionary["secder_norm_mean"] = np.nanmedian(secder_norm_means)
-    sqi_dictionary["secder_norm_median"] = np.nanmedian(secder_norm_medians)
-    sqi_dictionary["secder_norm_variance"] = np.nanmedian(secder_norm_variances)
+    sqi_dictionary["data_mean"] = np.nanmedian(raw_means)
+    sqi_dictionary["data_median"] = np.nanmedian(raw_medians)
+    sqi_dictionary["data_variance"] = np.nanmedian(raw_variances)
     sqi_dictionary["skew"] = np.nanmedian(skews)
     sqi_dictionary["kurt"] = np.nanmedian(kurts)
     sqi_dictionary["snr"] = np.nanmedian(snrs)
@@ -65,17 +56,14 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
     sqi_dictionary["ent"] = np.nanmedian(ents)
     sqi_dictionary["pi"] = np.nanmedian(pis)
 
+    #########
+    # Debug #
+    #########
     if debug:
         # Plotting the length of each list and its calculated nanmedian
-        print("Length of norm_means: ", len(norm_means), " Calculated nanmedian: ", np.nanmedian(norm_means))
-        print("Length of norm_medians: ", len(norm_medians), " Calculated nanmedian: ", np.nanmedian(norm_medians))
-        print("Length of norm_variances: ", len(norm_variances), " Calculated nanmedian: ", np.nanmedian(norm_variances))
         print("Length of raw_means: ", len(raw_means), " Calculated nanmedian: ", np.nanmedian(raw_means))
         print("Length of raw_medians: ", len(raw_medians), " Calculated nanmedian: ", np.nanmedian(raw_medians))
         print("Length of raw_variances: ", len(raw_variances), " Calculated nanmedian: ", np.nanmedian(raw_variances))
-        print("Length of secder_norm_means: ", len(secder_norm_means), " Calculated nanmedian: ", np.nanmedian(secder_norm_means))
-        print("Length of secder_norm_medians: ", len(secder_norm_medians), " Calculated nanmedian: ", np.nanmedian(secder_norm_medians))
-        print("Length of secder_norm_variances: ", len(secder_norm_variances), " Calculated nanmedian: ", np.nanmedian(secder_norm_variances))
         print("Length of skews: ", len(skews), " Calculated nanmedian: ", np.nanmedian(skews))
         print("Length of kurts: ", len(kurts), " Calculated nanmedian: ", np.nanmedian(kurts))
         print("Length of snrs: ", len(snrs), " Calculated nanmedian: ", np.nanmedian(snrs))
