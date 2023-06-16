@@ -82,7 +82,7 @@ def extraction_protocol_v2(dataset, data, fs, window_size, save_name, visualise 
             peak_points[key]["Pre_peak"] += start
             peak_points[key]["Post_peak"] += start
         
-        sqis = get_sqis(peak_points, fs, visualise=visualise, debug=debug)
+        #sqis = get_sqis(peak_points, fs, visualise=visualise, debug=debug)
         peak_points = get_features_v2(list(data[start:end]),peak_points, visualise=visualise, debug=debug)
         pulses.update(peak_points)
     

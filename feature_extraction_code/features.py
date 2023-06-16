@@ -41,6 +41,6 @@ def get_features_v2(raw_data, pulse_dictionary, visualise=False, debug=False):
         sec_der_ratio = get_second_der_ratio(pulse_dictionary)
         slope_features = get_slopes(pulse_dictionary, visualise)
         datum_features = get_datum_line_features(pulse_dictionary, visualise, debug)"""
-
+        get_widths(pulse_dictionary, visualise, debug)
 
         return pulse_dictionary
