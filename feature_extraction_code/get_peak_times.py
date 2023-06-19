@@ -31,7 +31,7 @@ def get_peak_times(window_pulse_data, visualise=0):
             # Defining pulse data #
             #######################
             pulse_data = window_pulse_data[key]
-            data = pulse_data["raw_pulse_data"]
+            data = pulse_data["pulse_data"]
             peak = pulse_data["Relative_peak"]
             pre = 0
             post = len(data)

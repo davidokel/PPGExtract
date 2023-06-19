@@ -2,8 +2,24 @@ import numpy as np
 import scipy.stats as stats
 import scipy.signal as sp
 import matplotlib.pyplot as plt
+from support_code.data_methods import data_scaler 
 
-def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
+def get_sqis(pulse_dictionary, visualise = False, debug = False):
+    """
+    Calculates statistical and SQI data for each pulse in the pulse dictionary.
+
+    Args:
+        pulse_dictionary (dict): Dictionary containing pulse data and peak information.
+        fs (float): Sampling frequency of the pulse data.
+        visualise (bool, optional): Whether to visualise the statistical and SQI data. Defaults to False.
+        debug (bool, optional): Whether to print debug information. Defaults to False.
+
+    Returns:
+        dict: Dictionary containing statistical and SQI data for each pulse.
+
+    Raises:
+        ValueError: If the pulse_dictionary is empty.
+    """
 
     ##############################################################################
     # Initialising a list dictionary and lists to store statistical and sqi data #
@@ -13,26 +29,15 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
 
     for key in pulse_dictionary.keys():
         pulse_data = pulse_dictionary[key]["pulse_data"]
+        raw_pulse_data = pulse_dictionary[key]["raw_pulse_data"]
+        peak = pulse_dictionary[key]["relative_peak"]
 
         skew = get_skew(pulse_data)
         kurt = get_kurt(pulse_data)
-        snr = get_snr(pulse_data)
-        zcr = get_zcr(pulse_data,fs)
+        snr = get_snr(raw_pulse_data, pulse_data)
+        zcr = get_zcr(pulse_data)
         ent = get_entropy(pulse_data)
-        pi = get_pi(pulse_data, fs)
-
-        ############
-        # Plotting #
-        ############
-        if visualise:
-            plt.title("Raw Pulse Data")
-            plt.plot(pulse_data)
-            plt.show()
-
-            # Get the user input to see if they want to move onto the next visualisation or stop visualising
-            user_input = input("Press enter to continue, or type 'stop' to stop visualising: ")
-            if user_input == "stop":
-                visualise = 0
+        pi = get_pi(pulse_data, peak)
 
         # Appending the statistical/sqi data to the lists
         raw_means.append(np.mean(pulse_data))
@@ -44,7 +49,34 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
         zcrs.append(zcr)
         ents.append(ent)
         pis.append(pi)
-        
+
+        #########
+        # Debug #
+        #########
+        if debug:
+            print("Raw mean: ", raw_means[-1])
+            print("Raw median: ", raw_medians[-1])
+            print("Raw variance: ", raw_variances[-1])
+            print("Skew: ", skews[-1])
+            print("Kurt: ", kurts[-1])
+            print("SNR: ", snrs[-1])
+            print("ZCR: ", zcrs[-1])
+            print("Entropy: ", ents[-1])
+            print("PI: ", pis[-1])
+
+        ############
+        # Plotting #
+        ############
+        if visualise:
+            plt.title("Pulse Data")
+            plt.plot(pulse_data)
+            plt.show()
+
+            # Get the user input to see if they want to move onto the next visualisation or stop visualising
+            user_input = input("Press enter to continue, or type 'stop' to stop visualising: ")
+            if user_input == "stop":
+                visualise = 0
+
     # Appending the statistical/sqi data to the dictionary but calculating the nanmedian prior to adding
     sqi_dictionary["data_mean"] = np.nanmedian(raw_means)
     sqi_dictionary["data_median"] = np.nanmedian(raw_medians)
@@ -73,49 +105,117 @@ def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
         
     return pulse_dictionary
 
-def get_skew(data):
-    return stats.skew(data)
+def get_skew(pulse_data):
+    """
+    Calculates the skewness of a given dataset.
 
-def get_kurt(data):
-    return stats.kurtosis(data)
+    Args:
+        pulse_data (array-like): The dataset for which the skewness is to be calculated.
 
-def get_snr(pulse):
-    snr = np.std(np.abs(pulse)) / np.std(pulse)
+    Returns:
+        float: The skewness of the dataset.
+
+    Raises:
+        ValueError: If the data is empty.
+    """
+    return stats.skew(pulse_data)
+
+def get_kurt(pulse_data):
+    """
+    Calculates the kurtosis of a given dataset.
+
+    Args:
+        pulse_data (array-like): The dataset for which the kurtosis is to be calculated.
+
+    Returns:
+        float: The kurtosis of the dataset.
+
+    Raises:
+        ValueError: If the data is empty.
+    """
+    return stats.kurtosis(pulse_data)
+
+def get_snr(unfiltered_data, filtered_data):
+    """
+    Calculates the signal-to-noise ratio (SNR) of a given pulse.
+
+    Args:
+        pulse_data (array-like): The pulse data.
+
+    Returns:
+        float: The SNR of the pulse.
+    """
+    noise = unfiltered_data - filtered_data
+    signal_power = np.var(filtered_data)
+    noise_power = np.var(noise)
+    snr = signal_power / noise_power
     return snr
 
-def get_zcr(pulse,fs):
-    # Count the number of times the pulse crosses the zero-axis
-    crossings = np.count_nonzero(np.diff(np.sign(pulse)) != 0)
+def get_zcr(pulse_data):
+    """
+    Calculates the zero crossing rate (ZCR) of a given pulse.
 
-    # Calculate the zero crossing rate (ZCR) in Hz
-    zcr = crossings / (2 * len(pulse) / fs)
+    Args:
+        pulse_data (array-like): The pulse data for which the ZCR is to be calculated.
+        fs (float): The sampling frequency of the pulse data.
 
-    return float(zcr)
+    Returns:
+        float: The ZCR of the pulse.
 
-def get_entropy(data):
-    squared_signal = np.square(data)
-    log_squared_signal = np.log(squared_signal)
-    entropy = -np.sum(squared_signal * log_squared_signal)
+    Raises:
+        ValueError: If the pulse_data is empty.
+    """
+        
+    # Normalising the data by subtracting the mean
+    normalised_pulse_data = pulse_data - np.mean(pulse_data)
+
+    # Count zero crossings
+    zcr = len(np.where(np.diff(np.signbit(normalised_pulse_data)))[0])
+
+    # Calculate zero-crossing rate
+    pulse_duration = len(normalised_pulse_data)
+    zcr_rate = zcr / pulse_duration
+
+    return zcr_rate
+
+def get_entropy(pulse_data):
+    """
+    Calculates the entropy of a given dataset.
+
+    Args:
+        pulse_data (array-like): The dataset for which the entropy is to be calculated.
+
+    Returns:
+        float: The entropy of the dataset.
+
+    Raises:
+        ValueError: If the pulse_data is empty.
+    """
+    entropy = stats.entropy(pulse_data)
 
     return entropy
 
-def get_pi(raw_pulse, fs):
-    raw_pulse = -1 * np.array(raw_pulse)
-    
-    sos_ac = sp.butter(2, [0.5, 12], btype='bandpass', analog=False, output='sos', fs=fs)
-    sos_dc = sp.butter(4, (0.2/(fs/2)), btype='lowpass', analog=False, output='sos', fs=fs)
-    try:
-        ac_data = sp.sosfiltfilt(sos_ac, raw_pulse, axis=-1, padtype='odd', padlen=None)
-        dc_data = sp.sosfiltfilt(sos_dc, raw_pulse, axis= -1, padtype='odd', padlen=None)
-    except ValueError:
-        min_padlen = int((len(raw_pulse) - 1) // 2)
-        ac_data = sp.sosfiltfilt(sos_ac, raw_pulse, axis=-1, padtype='odd', padlen=min_padlen)
-        dc_data = sp.sosfiltfilt(sos_dc, raw_pulse, axis= -1, padtype='odd', padlen=min_padlen)
+def get_pi(pulse_data, peak):
+    """
+    Calculates the PI (Peak-to-Instantaneous Ratio) value for a given pulse.
 
-    ac_component = max(ac_data) - min(ac_data)
-    dc_component = np.mean(np.abs(dc_data))
+    Args:
+        pulse_data (array-like): The pulse data.
+        peak (int): The index of the relative peak in the pulse data.
 
-    # Calculate the perfusion index
-    pi = (ac_component / dc_component) * 100
+    Returns:
+        float: The PI value for the pulse.
+
+    Raises:
+        ValueError: If the pulse_data is empty or the peak index is out of range.
+    """
+    # Get the prominence of the pulse using the relative peak using peak_prominences
+    peak_prominence = sp.peak_prominences(pulse_data, [peak])[0][0]
+
+    # Get the mean of the pulse
+    mean = np.mean(pulse_data)
+
+    # Calculate the PI value
+    pi = (abs(peak_prominence) / abs(mean)) * 100
 
     return pi

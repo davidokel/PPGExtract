@@ -1,8 +1,9 @@
+# Importing packages
 import numpy as np
 import matplotlib.pyplot as plt
-import support_code.data_methods as data_methods
 from scipy.integrate import trapz
-    
+from support_code.data_methods import data_scaler
+
 def get_aucs(window_pulse_data, visualise=False, debug=False):
     """
     Calculates the area under the curve (AUC) for pulse data within a given window.
@@ -37,7 +38,7 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
             # Defining pulse data #
             #######################
             pulse_data = window_pulse_data[key]
-            data = pulse_data["raw_pulse_data"]
+            data = pulse_data["pulse_data"]
             peak = pulse_data["Relative_peak"]
             pre = 0
             post = len(data)
@@ -46,7 +47,7 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
             Scaling does not alter the shape or proportion of the curves: 
             Scaling the PPG data by adding a constant factor does not change the relative shape or proportion of the PPG waveforms. 
             The AUC calculations primarily rely on relative positions, which remain intact regardless of scaling."""
-            data_scaled = data_methods.data_scaler(np.array(data))
+            data_scaled = data_scaler(np.array(data))
 
             if peak:
                 ##############################
@@ -76,7 +77,16 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
 
                 for area in range(len(dia_aucs)):
                     auc_ratio = sys_aucs[area]/dia_aucs[area]
-                auc_ratios.append(auc_ratio)
+                    auc_ratios.append(auc_ratio)
+
+                #########
+                # Debug #
+                #########
+                if debug:
+                    print("AUC: " + str(aucs[-1]))
+                    print("S-AUC: " + str(sys_aucs[-1]))
+                    print("D-AUC: " + str(dia_aucs[-1]))
+                    print("AUC Ratio: " + str(auc_ratios[-1]))
 
                 ############
                 # Plotting #
@@ -113,7 +123,7 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
 
                     plt.subplots_adjust(hspace=0.3)
                     manager = plt.get_current_fig_manager()
-                    manager.window.showMaximized()
+                    manager.full_screen_toggle()
                     #plt.axis('off')
 
                     plt.axis('tight')
@@ -125,15 +135,6 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
                     if user_input == "stop":
                         visualise = 0
                 
-                #########
-                # Debug #
-                #########
-                if debug:
-                    print("AUC: " + str(aucs[-1]))
-                    print("S-AUC: " + str(sys_aucs[-1]))
-                    print("D-AUC: " + str(dia_aucs[-1]))
-                    print("AUC Ratio: " + str(auc_ratios[-1]))
-                        
         # Return the median of the calculated AUC values
         return float(np.nanmedian(aucs)), float(np.nanmedian(sys_aucs)), float(np.nanmedian(dia_aucs)), float(np.nanmedian(auc_ratios))
     else:

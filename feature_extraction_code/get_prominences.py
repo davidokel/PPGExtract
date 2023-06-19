@@ -33,7 +33,7 @@ def get_prominences(window_pulse_data, visualise=False, debug=False):
             #######################
             # Defining pulse data #
             #######################
-            data = window_pulse_data[key]["raw_pulse_data"]
+            data = window_pulse_data[key]["pulse_data"]
             peak = np.array([window_pulse_data[key]["Relative_peak"]])
             
             """Scaling the data to have a minimum value of 0 by adding a scaling factor.

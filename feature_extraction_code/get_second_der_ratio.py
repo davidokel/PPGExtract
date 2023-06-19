@@ -29,7 +29,7 @@ def get_second_der_ratio(window_pulse_data, debug=False):
             #######################
             # Defining pulse data #
             #######################
-            data = window_pulse_data[key]["raw_pulse_data"]
+            data = window_pulse_data[key]["pulse_data"]
 
             ####################################
             # Calculating second derivatives #

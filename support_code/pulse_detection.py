@@ -129,21 +129,18 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     # Filtering the data using a 3Hz, 2nd order lowpass Butterworth filter
     sos_ac = sp.butter(2, 5, btype='lowpass', analog=False, output='sos', fs=fs)
     try:
-        data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=None)
+        filtered_data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=None)
     except ValueError:
         min_padlen = int((len(data) - 1) // 2)
-        data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=min_padlen)
-
-    # Normalising the data
-    normalised_data = normalise_data(data, fs)
+        filtered_data = sp.sosfiltfilt(sos_ac, data, axis=-1, padtype='odd', padlen=min_padlen)
         
-    # Calculating the moving average of the data using a 0.95 second window
-    moving_average_data = np.convolve(data, np.ones((int(fs * 0.95),)) / int(fs * 0.95), mode='valid')
-    n = len(data) - len(moving_average_data)
-    data = data[int(n/2):-int(n/2)]
+    # Calculating the moving average of the filtered_data using a 0.95 second window
+    moving_average_data = np.convolve(filtered_data, np.ones((int(fs * 0.95),)) / int(fs * 0.95), mode='valid')
+    n = len(filtered_data) - len(moving_average_data)
+    filtered_data = filtered_data[int(n/2):-int(n/2)]
 
-    # Finding the crossing points of the data and the moving average
-    diff = data - moving_average_data
+    # Finding the crossing points of the filtered_data and the moving average
+    diff = filtered_data - moving_average_data
     crossings = np.where(np.gradient(np.sign(diff)))[0]
 
     # Splitting the crossings into groups and combining groups that are close together (less than fs/10 samples apart)
@@ -163,21 +160,21 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
         # Calculate the average moving average between the crossings
         average_moving_average = np.mean(moving_average_data[i:j]) 
         
-        # Get the data between the two crossings and calculate the mean of the data
-        data_between = data[i:j]
+        # Get the filtered_data between the two crossings and calculate the mean of the filtered_data
+        data_between = filtered_data[i:j]
         mean_data_between = np.mean(data_between)
         
-        # Determine if the data between the two crossings is a peak or trough
-        # If the mean of the data between the two crossings is greater than the average moving average, it is a peak
+        # Determine if the filtered_data between the two crossings is a peak or trough
+        # If the mean of the filtered_data between the two crossings is greater than the average moving average, it is a peak
         if mean_data_between > average_moving_average:
-            peak = np.argmax(data_between) + i # Get the argmax of the data between the two crossings and add i to get the index of the peak
+            peak = np.argmax(data_between) + i # Get the argmax of the filtered_data between the two crossings and add i to get the index of the peak
 
             # Check if the previous element in p_t_tuples is a peak
             if len(p_t_tuples) > 0 and p_t_tuples[-1][1] == "Peak":
                 # Get the value of the previous peak and the current peak
                 previous_peak = p_t_tuples[-1][0]
-                previous_peak_value = data[previous_peak]
-                current_peak_value = data[peak]
+                previous_peak_value = filtered_data[previous_peak]
+                current_peak_value = filtered_data[peak]
                 
                 # If the current peak's value is greater than the previous peak's value, remove the previous peak from p_t_tuples
                 if current_peak_value > previous_peak_value:
@@ -186,9 +183,9 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
             # Add the current peak to p_t_tuples
             p_t_tuples.append((peak, "Peak"))
         
-        # If the mean of the data between the two crossings is less than the average moving average, it is a trough
+        # If the mean of the filtered_data between the two crossings is less than the average moving average, it is a trough
         elif mean_data_between < average_moving_average:
-            trough = np.argmin(data_between) + i # Get the argmin of the data between the two crossings and add i to get the index of the trough
+            trough = np.argmin(data_between) + i # Get the argmin of the filtered_data between the two crossings and add i to get the index of the trough
             p_t_tuples.append((trough, "Trough"))
 
     ####################################################
@@ -206,12 +203,12 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     # Anomalous peaks are peaks that have a value lower than either of the troughs either side of it.
     anom_peak_indexes = []
     for i in range(1, len(p_t_tuples) - 1):
-        if p_t_tuples[i][1] == "Peak" and (data[p_t_tuples[i][0]] < data[p_t_tuples[i-1][0]] or data[p_t_tuples[i][0]] < data[p_t_tuples[i+1][0]]):
+        if p_t_tuples[i][1] == "Peak" and (filtered_data[p_t_tuples[i][0]] < filtered_data[p_t_tuples[i-1][0]] or filtered_data[p_t_tuples[i][0]] < filtered_data[p_t_tuples[i+1][0]]):
             anom_peak_indexes.append(p_t_tuples[i][0])
     p_t_tuples = [(index, label) for index, label in p_t_tuples if index not in anom_peak_indexes]
 
     # Filter the troughs in p_t_tuples
-    p_t_tuples = filter_troughs(p_t_tuples, data)
+    p_t_tuples = filter_troughs(p_t_tuples, filtered_data)
 
     # Extract peaks and troughs from p_t_tuples
     peaks = [x[0] for x in p_t_tuples if x[1] == "Peak"]
@@ -228,18 +225,19 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
 
         key = peaks[i]
         peak_points[key] = {
-            "Peak": peaks[i],
-            "Relative_peak": peaks[i] - pulse_onset,
-            "pulse_data": data[pulse_onset:pulse_end],
-            "Pre_peak": pulse_onset,
-            "Post_peak": pulse_end
+            "peak": peaks[i],
+            "relative_peak": peaks[i] - pulse_onset,
+            "raw_pulse_data": data[pulse_onset:pulse_end],
+            "pulse_data": filtered_data[pulse_onset:pulse_end],
+            "pre_peak": pulse_onset,
+            "post_peak": pulse_end
         }
 
     if z_score_detection:
         # Calculating quality metrics i) inter-peak distance, ii) onset-peak difference (y), iii) peak-end difference (y)
         peak_distances = np.gradient(peaks)
-        onset_peak_y = [data[peaks[i]] - data[left_troughs[-1]] for i, left_troughs in enumerate([[trough for trough in troughs if trough < peak] for peak in peaks])]
-        peak_end_y = [data[peaks[i]] - data[right_troughs[0]] for i, right_troughs in enumerate([[trough for trough in troughs if trough > peak] for peak in peaks])]
+        onset_peak_y = [filtered_data[peaks[i]] - filtered_data[left_troughs[-1]] for i, left_troughs in enumerate([[trough for trough in troughs if trough < peak] for peak in peaks])]
+        peak_end_y = [filtered_data[peaks[i]] - filtered_data[right_troughs[0]] for i, right_troughs in enumerate([[trough for trough in troughs if trough > peak] for peak in peaks])]
 
         # Calculate z-scores for quality metrics
         peak_distances_z_scores = z_score(peak_distances, threshold=z_score_threshold)
@@ -256,23 +254,23 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
 
     if visualise:
         plt.title("Pulse Detection")
-        plt.plot(data, label='Data')
-        plt.plot(peaks, data[peaks], 'go', label='Peaks')
-        plt.plot(troughs, data[troughs], 'ro', label='Troughs')
+        plt.plot(filtered_data, label='Data')
+        plt.plot(peaks, filtered_data[peaks], 'go', label='Peaks')
+        plt.plot(troughs, filtered_data[troughs], 'ro', label='Troughs')
         if z_score_detection:
-            plt.plot(false_peaks, data[false_peaks], 'yo', label='Detected "Anomalous Peaks"')
+            plt.plot(false_peaks, filtered_data[false_peaks], 'yo', label='Detected "Anomalous Peaks"')
         plt.legend()
         plt.show()
 
     if debug:
         plt.title("Pulse Detection")
-        plt.plot(data, label='Data')
+        plt.plot(filtered_data, label='Data')
         plt.plot(moving_average_data,'b--', label='Moving Average')
         plt.plot(crossings, moving_average_data[crossings], 'bo', label='Crossings')
-        plt.plot(peaks, data[peaks], 'go', label='Peaks')
-        plt.plot(troughs, data[troughs], 'ro', label='Troughs')
+        plt.plot(peaks, filtered_data[peaks], 'go', label='Peaks')
+        plt.plot(troughs, filtered_data[troughs], 'ro', label='Troughs')
         if z_score_detection:
-            plt.plot(false_peaks, data[false_peaks], 'yo', label='Detected "Anomalous Peaks"')
+            plt.plot(false_peaks, filtered_data[false_peaks], 'yo', label='Detected "Anomalous Peaks"')
         plt.legend()
         plt.show()
 
@@ -283,14 +281,14 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
             if key in peak_points:
                 peak_points.pop(key)
 
-    peaks = [peak_points[key]["Peak"] for key in peak_points]
-    troughs = [peak_points[key]["Pre_peak"] for key in peak_points] + [peak_points[key]["Post_peak"] for key in peak_points]
+    peaks = [peak_points[key]["peak"] for key in peak_points]
+    troughs = [peak_points[key]["pre_peak"] for key in peak_points] + [peak_points[key]["post_peak"] for key in peak_points]
 
     if visualise:
         plt.title("Pulse Detection")
-        plt.plot(data, label='Data')
-        plt.plot(peaks, data[peaks], 'go', label='Peaks')
-        plt.plot(troughs, data[troughs], 'ro', label='Troughs')
+        plt.plot(filtered_data, label='Data')
+        plt.plot(peaks, filtered_data[peaks], 'go', label='Peaks')
+        plt.plot(troughs, filtered_data[troughs], 'ro', label='Troughs')
         plt.legend()
         plt.show()
 
