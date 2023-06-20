@@ -16,10 +16,11 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
     - debug: An optional parameter (default is False) to visualize the AUC plots.
 
     Outputs:
-    - Median AUC: The median of all calculated AUC values (NaN if no peak is found)
-    - Median Systolic AUC: The median of all calculated systolic AUC values (NaN if no peak is found)
-    - Median Diastolic AUC: The median of all calculated diastolic AUC values (NaN if no peak is found)
-    - Median AUC Ratio: The median of the calculated AUC ratios (Systolic AUC / Diastolic AUC) (NaN if no peak is found)
+    - auc_features: A dictionary which includes (if window_pulse_data is not empty)
+        - Median AUC: The median of all calculated AUC values
+        - Median Systolic AUC: The median of all calculated systolic AUC values
+        - Median Diastolic AUC: The median of all calculated diastolic AUC values
+        - Median AUC Ratio: The median of the calculated AUC ratios (Systolic AUC / Diastolic AUC)
 
     Error Handling:
     - If the window_pulse_data is empty, the function returns NaN for all outputs.
@@ -39,7 +40,7 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
             #######################
             pulse_data = window_pulse_data[key]
             data = pulse_data["pulse_data"]
-            peak = pulse_data["Relative_peak"]
+            peak = pulse_data["relative_peak"]
             pre = 0
             post = len(data)
 
@@ -123,7 +124,7 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
 
                     plt.subplots_adjust(hspace=0.3)
                     manager = plt.get_current_fig_manager()
-                    manager.full_screen_toggle()
+                    manager.window.showMaximized()
                     #plt.axis('off')
 
                     plt.axis('tight')
@@ -134,9 +135,12 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
                     user_input = input("Press enter to continue, or type 'stop' to stop visualising: ")
                     if user_input == "stop":
                         visualise = 0
-                
-        # Return the median of the calculated AUC values
-        return float(np.nanmedian(aucs)), float(np.nanmedian(sys_aucs)), float(np.nanmedian(dia_aucs)), float(np.nanmedian(auc_ratios))
+        
+        auc_features = {}
+        auc_features["AUC"] = float(np.nanmedian(aucs))
+        auc_features["S-AUC"] = float(np.nanmedian(sys_aucs))
+        auc_features["D-AUC"] = float(np.nanmedian(dia_aucs))
+        auc_features["AUC Ratio"] = float(np.nanmedian(auc_ratios))
+        return auc_features
     else:
-        # Return NaN if no peaks are found
-        return np.NaN, np.NaN, np.NaN, np.NaN
+        return {}

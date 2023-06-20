@@ -32,7 +32,7 @@ def get_peak_times(window_pulse_data, visualise=0):
             #######################
             pulse_data = window_pulse_data[key]
             data = pulse_data["pulse_data"]
-            peak = pulse_data["Relative_peak"]
+            peak = pulse_data["relative_peak"]
             pre = 0
             post = len(data)
             
@@ -77,8 +77,11 @@ def get_peak_times(window_pulse_data, visualise=0):
                     if user_input == "stop":
                         visualise = 0
 
-        # Return the nan-median rise time, decay time and rise/decay time ratio
-        return float(np.nanmedian(rise_times)), float(np.nanmedian(decay_times)), float(np.nanmedian(rise_decay_time_ratios))
+        time_features = {}
+        time_features["rise_times"] = float(np.nanmedian(rise_times))
+        time_features["decay_times"] = float(np.nanmedian(decay_times))
+        time_features["rise_decay_time_ratios"] = float(np.nanmedian(rise_decay_time_ratios))
+        return time_features
     # Return NaN if no peaks are found
     else:
-        return np.NaN, np.NaN, np.NaN
+        return {}

@@ -4,7 +4,7 @@ import scipy.signal as sp
 import matplotlib.pyplot as plt
 from support_code.data_methods import data_scaler 
 
-def get_sqis(pulse_dictionary, visualise = False, debug = False):
+def get_sqis(pulse_dictionary, fs, visualise = False, debug = False):
     """
     Calculates statistical and SQI data for each pulse in the pulse dictionary.
 
@@ -34,7 +34,7 @@ def get_sqis(pulse_dictionary, visualise = False, debug = False):
 
         skew = get_skew(pulse_data)
         kurt = get_kurt(pulse_data)
-        snr = get_snr(raw_pulse_data, pulse_data)
+        snr = get_snr(raw_pulse_data, pulse_data, fs, visualise=visualise)
         zcr = get_zcr(pulse_data)
         ent = get_entropy(pulse_data)
         pi = get_pi(pulse_data, peak)
@@ -103,7 +103,7 @@ def get_sqis(pulse_dictionary, visualise = False, debug = False):
         print("Length of ent: ", len(ents), " Calculated nanmedian: ", np.nanmedian(ents))
         print("Length of pi: ", len(pis), " Calculated nanmedian: ", np.nanmedian(pis))
         
-    return pulse_dictionary
+    return sqi_dictionary
 
 def get_skew(pulse_data):
     """
@@ -135,20 +135,54 @@ def get_kurt(pulse_data):
     """
     return stats.kurtosis(pulse_data)
 
-def get_snr(unfiltered_data, filtered_data):
+def get_snr(unfiltered_data, filtered_data, fs, visualise=False):
     """
-    Calculates the signal-to-noise ratio (SNR) of a given pulse.
+    Calculates the Signal to Noise Ratio (SNR) of a given pulse using the mean of the filtered and unfiltered data.
 
     Args:
-        pulse_data (array-like): The pulse data.
+        unfiltered_data (array-like): The unfiltered pulse data.
+        filtered_data (array-like): The filtered pulse data.
+        fs (float): The sampling frequency of the pulse data.
+        debug (bool, optional): If True, prints the signal power, noise power, and SNR, and plots the filtered and unfiltered data. Defaults to False.
+        visualise (bool, optional): If True, plots the filtered and unfiltered data. Defaults to False.
 
     Returns:
-        float: The SNR of the pulse.
+        float: The SNR in decibels.
     """
-    noise = unfiltered_data - filtered_data
-    signal_power = np.var(filtered_data)
-    noise_power = np.var(noise)
-    snr = signal_power / noise_power
+
+    # Create a highpass filter with a cutoff frequency of 5 Hz
+    highpass_filter = sp.butter(2, 5, btype='highpass', analog=False, output='sos', fs=fs)
+    
+    try:
+        # Filter the unfiltered data to isolate the noise
+        isolated_noise = sp.sosfiltfilt(highpass_filter, unfiltered_data, axis=-1, padtype='odd', padlen=None)
+    except ValueError:
+        # If the filter fails, pad the data with zeros
+        min_padlen = int((len(data) - 1) // 2)
+        isolated_noise = sp.sosfiltfilt(highpass_filter, unfiltered_data, axis=-1, padtype='odd', padlen=min_padlen)
+    
+    # Calculate the signal power and noise power
+    signal_power = np.mean(filtered_data**2)
+    noise_power = np.mean(isolated_noise**2)
+    
+    # Calculate the SNR in decibels
+    snr = 10 * np.log10(signal_power / noise_power)
+
+    if visualise:
+        # Print the signal power, noise power, and SNR
+        print("Signal power: ", signal_power)
+        print("Noise power: ", noise_power)
+        print("SNR: ", snr)
+
+        # Plot the filtered and unfiltered data
+        fig, (ax1, ax2) = plt.subplots(2)
+        ax1.set_title("Filtered data")
+        ax1.plot(filtered_data)
+        ax2.set_title("Isolated noise")
+        ax2.plot(isolated_noise)
+        plt.show()
+        
+    # Return the SNR
     return snr
 
 def get_zcr(pulse_data):

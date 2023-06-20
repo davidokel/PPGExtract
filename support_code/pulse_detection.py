@@ -138,6 +138,7 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
     moving_average_data = np.convolve(filtered_data, np.ones((int(fs * 0.95),)) / int(fs * 0.95), mode='valid')
     n = len(filtered_data) - len(moving_average_data)
     filtered_data = filtered_data[int(n/2):-int(n/2)]
+    data = data[int(n/2):-int(n/2)]
 
     # Finding the crossing points of the filtered_data and the moving average
     diff = filtered_data - moving_average_data

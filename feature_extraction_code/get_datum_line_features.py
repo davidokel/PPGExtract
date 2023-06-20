@@ -47,7 +47,7 @@ def get_datum_line_features(window_pulse_data, visualise=False, debug=False):
             # Defining pulse data #
             #######################
             data = window_pulse_data[key]["pulse_data"]
-            peak = window_pulse_data[key]["Relative_peak"]
+            peak = window_pulse_data[key]["relative_peak"]
             pulse_start = 0
             pulse_end = len(data)-1
             

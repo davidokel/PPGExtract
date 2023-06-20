@@ -21,7 +21,7 @@ def get_beat_features(window_pulse_data, debug = False):
 
     # Check that window_pulse_data is not empty
     if window_pulse_data:
-        peaks = [window_pulse_data[key]["Peak"] for key in window_pulse_data]
+        peaks = [window_pulse_data[key]["peak"] for key in window_pulse_data]
         peaks.sort()
 
         ###################################
@@ -55,9 +55,13 @@ def get_beat_features(window_pulse_data, debug = False):
             print("Coefficient of variation of IBI: " + str(cv_ibi))
                             
         # Return the beat based features
-        return num_beats, median_ibi, std_ibi, cv_ibi
+        beat_features = {}
+        beat_features["num_beats"] = num_beats
+        beat_features["median_ibi"] = median_ibi
+        beat_features["std_ibi"] = std_ibi
+        return beat_features
     else:
-        # Return NaN if no peaks are found
-        return np.NaN, np.NaN, np.NaN, np.NaN
+        # Return empty dictionary if no peaks are found
+        return {}
         
     

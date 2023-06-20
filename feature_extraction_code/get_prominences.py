@@ -34,7 +34,7 @@ def get_prominences(window_pulse_data, visualise=False, debug=False):
             # Defining pulse data #
             #######################
             data = window_pulse_data[key]["pulse_data"]
-            peak = np.array([window_pulse_data[key]["Relative_peak"]])
+            peak = np.array([window_pulse_data[key]["relative_peak"]])
             
             """Scaling the data to have a minimum value of 0 by adding a scaling factor.
             The scaling process shifts the entire signal vertically, but it does not change the relative amplitudes or the shape of the waveform. 
@@ -77,7 +77,8 @@ def get_prominences(window_pulse_data, visualise=False, debug=False):
                 if debug:
                     print("Prominence: " + str(prominences[-1]))
                     print("\n")
-
-        return float(np.nanmedian(prominences))
+        prominence_feature = {}
+        prominence_feature["Median Prominence"] = float(np.nanmedian(prominences))
+        return prominence_feature
     else:
-        return np.NaN
+        return {}

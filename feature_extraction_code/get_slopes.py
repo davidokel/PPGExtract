@@ -35,7 +35,7 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
             # Defining pulse data #
             #######################
             data = window_pulse_data[key]["pulse_data"]
-            peak = window_pulse_data[key]["Relative_peak"]
+            peak = window_pulse_data[key]["relative_peak"]
             pre = 0
             post = len(data) -1
             pulse_length = post - pre

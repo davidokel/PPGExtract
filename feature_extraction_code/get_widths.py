@@ -22,7 +22,7 @@ def get_widths(window_pulse_data, visualise=False, debug=False):
             data = window_pulse_data[key]["pulse_data"]
             pulse_start = 0
             pulse_end = len(data)-1
-            peak = np.array([window_pulse_data[key]["Relative_peak"]])
+            peak = np.array([window_pulse_data[key]["relative_peak"]])
 
             # Checking if there are any peaks in the data
             if peak:
@@ -279,3 +279,5 @@ def get_widths(window_pulse_data, visualise=False, debug=False):
                 print(key, value)
 
         return width_features
+    else:
+        return {}
