@@ -9,7 +9,6 @@ def get_widths(window_pulse_data, visualise=False, debug=False):
         ###########################################################
         # Initialising a dictionary and lists to store WIDTH data #
         ###########################################################
-        width_features = {}
         pulse_widths = []
         pulse_widths_10, pulse_widths_20, pulse_widths_30, pulse_widths_40, pulse_widths_50, pulse_widths_60, pulse_widths_70, pulse_widths_80, pulse_widths_90 = [], [], [], [], [], [], [], [], []
         systolic_widths_10, systolic_widths_20, systolic_widths_30, systolic_widths_40, systolic_widths_50, systolic_widths_60, systolic_widths_70, systolic_widths_80, systolic_widths_90 = [], [], [], [], [], [], [], [], []
@@ -232,6 +231,7 @@ def get_widths(window_pulse_data, visualise=False, debug=False):
                     print("DS ratios 90%: ", ds_ratios_90[-1])
                     
         # Add the extracted features to the dictionary
+        width_features = {}
         width_features["pulse_width"] = np.nanmedian(pulse_widths)
         width_features["pulse_width_10"] = np.nanmedian(pulse_widths_10)
         width_features["pulse_width_20"] = np.nanmedian(pulse_widths_20)
@@ -280,4 +280,43 @@ def get_widths(window_pulse_data, visualise=False, debug=False):
 
         return width_features
     else:
-        return {}
+        # Add the extracted features to the dictionary
+        width_features = {}
+        width_features["pulse_width"] = np.NaN
+        width_features["pulse_width_10"] = np.NaN
+        width_features["pulse_width_20"] = np.NaN
+        width_features["pulse_width_30"] = np.NaN
+        width_features["pulse_width_40"] = np.NaN
+        width_features["pulse_width_50"] = np.NaN
+        width_features["pulse_width_60"] = np.NaN
+        width_features["pulse_width_70"] = np.NaN
+        width_features["pulse_width_80"] = np.NaN
+        width_features["pulse_width_90"] = np.NaN
+        width_features["systolic_width_10"] = np.NaN
+        width_features["systolic_width_20"] = np.NaN
+        width_features["systolic_width_30"] = np.NaN
+        width_features["systolic_width_40"] = np.NaN
+        width_features["systolic_width_50"] = np.NaN
+        width_features["systolic_width_60"] = np.NaN
+        width_features["systolic_width_70"] = np.NaN
+        width_features["systolic_width_80"] = np.NaN
+        width_features["systolic_width_90"] = np.NaN
+        width_features["diastolic_width_10"] = np.NaN
+        width_features["diastolic_width_20"] = np.NaN
+        width_features["diastolic_width_30"] = np.NaN
+        width_features["diastolic_width_40"] = np.NaN
+        width_features["diastolic_width_50"] = np.NaN
+        width_features["diastolic_width_60"] = np.NaN
+        width_features["diastolic_width_70"] = np.NaN
+        width_features["diastolic_width_80"] = np.NaN
+        width_features["diastolic_width_90"] = np.NaN
+        width_features["ds_ratio_10"] = np.NaN
+        width_features["ds_ratio_20"] = np.NaN
+        width_features["ds_ratio_30"] = np.NaN
+        width_features["ds_ratio_40"] = np.NaN
+        width_features["ds_ratio_50"] = np.NaN
+        width_features["ds_ratio_60"] = np.NaN
+        width_features["ds_ratio_70"] = np.NaN
+        width_features["ds_ratio_80"] = np.NaN
+        width_features["ds_ratio_90"] = np.NaN
+        return width_features

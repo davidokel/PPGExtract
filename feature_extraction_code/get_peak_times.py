@@ -84,4 +84,8 @@ def get_peak_times(window_pulse_data, visualise=0):
         return time_features
     # Return NaN if no peaks are found
     else:
-        return {}
+        time_features = {}
+        time_features["rise_times"] = np.NaN
+        time_features["decay_times"] = np.NaN
+        time_features["rise_decay_time_ratios"] = np.NaN
+        return time_features

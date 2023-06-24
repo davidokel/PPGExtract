@@ -47,6 +47,7 @@ def get_prominences(window_pulse_data, visualise=False, debug=False):
                 # Calculate of prominence of the pulse #
                 ########################################
                 prominence = sp.peak_prominences(data, peak)[0]
+                
                 # Adding the prominences to the list
                 prominences.append(prominence)
 
@@ -77,8 +78,11 @@ def get_prominences(window_pulse_data, visualise=False, debug=False):
                 if debug:
                     print("Prominence: " + str(prominences[-1]))
                     print("\n")
+                    
         prominence_feature = {}
         prominence_feature["Median Prominence"] = float(np.nanmedian(prominences))
         return prominence_feature
     else:
-        return {}
+        prominence_feature = {}
+        prominence_feature["Median Prominence"] = np.NaN
+        return prominence_feature

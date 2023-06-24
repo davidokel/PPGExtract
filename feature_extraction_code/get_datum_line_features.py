@@ -36,7 +36,6 @@ def get_datum_line_features(window_pulse_data, visualise=False, debug=False):
     ################################################
     # Initialising a list to store datum line data #
     ################################################
-    datum_features = {}
     start_datum_areas, end_datum_areas, datum_area_ratios, max_end_datum_differences, max_start_datum_differences, median_start_datum_differences, median_end_datum_differences = [], [], [], [], [], [], []
 
     # If the window_pulse_data is not empty
@@ -146,6 +145,7 @@ def get_datum_line_features(window_pulse_data, visualise=False, debug=False):
                 print("Median end datum difference: ", median_end_datum_differences[-1])
                 print("\n")
         
+        datum_features = {}
         datum_features["Start datum area"] = np.nanmedian(start_datum_areas)
         datum_features["End datum area"] = np.nanmedian(end_datum_areas)
         datum_features["Datum area ratio"] = np.nanmedian(datum_area_ratios)
@@ -155,7 +155,15 @@ def get_datum_line_features(window_pulse_data, visualise=False, debug=False):
         datum_features["Median end datum difference"] = np.nanmedian(median_end_datum_differences)
         return datum_features
     else:
-        return np.nan
+        datum_features = {}
+        datum_features["Start datum area"] = np.NaN
+        datum_features["End datum area"] = np.NaN
+        datum_features["Datum area ratio"] = np.NaN
+        datum_features["Max start datum difference"] = np.NaN
+        datum_features["Max end datum difference"] = np.NaN
+        datum_features["Median start datum difference"] = np.NaN
+        datum_features["Median end datum difference"] = np.NaN
+        return datum_features
 
 
 

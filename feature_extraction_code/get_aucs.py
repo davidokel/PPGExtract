@@ -143,4 +143,9 @@ def get_aucs(window_pulse_data, visualise=False, debug=False):
         auc_features["AUC Ratio"] = float(np.nanmedian(auc_ratios))
         return auc_features
     else:
-        return {}
+        auc_features = {}
+        auc_features["AUC"] = np.NaN
+        auc_features["S-AUC"] = np.NaN
+        auc_features["D-AUC"] = np.NaN
+        auc_features["AUC Ratio"] = np.NaN
+        return auc_features

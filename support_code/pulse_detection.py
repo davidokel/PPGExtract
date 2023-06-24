@@ -26,8 +26,7 @@ def filter_troughs(p_t_tuples, data):
         raise ValueError("The data is empty.")
 
     # Get all the peaks and troughs within the p_t_tuples list
-    peaks = []
-    troughs = []
+    peaks, troughs = [], []
     for index, t in p_t_tuples:
         if t == "Peak":
             peaks.append(index)
@@ -234,24 +233,39 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
             "post_peak": pulse_end
         }
 
-    if z_score_detection:
-        # Calculating quality metrics i) inter-peak distance, ii) onset-peak difference (y), iii) peak-end difference (y)
-        peak_distances = np.gradient(peaks)
-        onset_peak_y = [filtered_data[peaks[i]] - filtered_data[left_troughs[-1]] for i, left_troughs in enumerate([[trough for trough in troughs if trough < peak] for peak in peaks])]
-        peak_end_y = [filtered_data[peaks[i]] - filtered_data[right_troughs[0]] for i, right_troughs in enumerate([[trough for trough in troughs if trough > peak] for peak in peaks])]
+    # Define false_peaks and false_indexes
+    false_peaks = []
+    # False_indexes should be an empty numpy array
+    false_indexes = np.array([])
 
-        # Calculate z-scores for quality metrics
-        peak_distances_z_scores = z_score(peak_distances, threshold=z_score_threshold)
-        onset_peak_y_z_scores = z_score(onset_peak_y, threshold=z_score_threshold)
-        peak_end_y_z_scores = z_score(peak_end_y, threshold=z_score_threshold)
+    # If there is more than one peak
+    if len(peaks) > 1:
+        if z_score_detection:
+            # Calculating quality metrics i) inter-peak distance, ii) onset-peak difference (y), iii) peak-end difference (y) iv) prominence
+            peak_distances = np.gradient(peaks)
+            onset_peak_y = [filtered_data[peaks[i]] - filtered_data[left_troughs[-1]] for i, left_troughs in enumerate([[trough for trough in troughs if trough < peak] for peak in peaks])]
+            peak_end_y = [filtered_data[peaks[i]] - filtered_data[right_troughs[0]] for i, right_troughs in enumerate([[trough for trough in troughs if trough > peak] for peak in peaks])]
+            
+            # Calculate z-scores for quality metrics
+            peak_distances_z_scores = z_score(peak_distances, threshold=z_score_threshold)
+            onset_peak_y_z_scores = z_score(onset_peak_y, threshold=z_score_threshold)
+            peak_end_y_z_scores = z_score(peak_end_y, threshold=z_score_threshold)
 
-        # Get the indexes where the z-scores are False
-        false_indexes = np.concatenate((np.where(peak_distances_z_scores == False)[0],
-                                        np.where(onset_peak_y_z_scores == False)[0],
-                                        np.where(peak_end_y_z_scores == False)[0]))
+            # Get the indexes where the z-scores are False
+            false_indexes = np.concatenate((np.where(peak_distances_z_scores == False)[0],
+                                            np.where(onset_peak_y_z_scores == False)[0],
+                                            np.where(peak_end_y_z_scores == False)[0]))
+            
+            # Get indexes of pulses which have a prominence of 0, calculated using the scipy.signal library
+            prominences = sp.peak_prominences(filtered_data, peaks)[0]
+            zero_prominence_indexes = np.where(prominences == 0)[0]
 
-        # Get indexes of the false peaks
-        false_peaks = [peaks[index] for index in false_indexes]
+            # Get indexes of the false peaks
+            false_peaks = [peaks[index] for index in false_indexes]
+            # Add the zero prominence peaks to the false indexes
+            false_peaks += [peaks[index] for index in zero_prominence_indexes]
+            # Add the zero prominence indexes to the false indexes
+            false_indexes = np.concatenate((false_indexes, zero_prominence_indexes))
 
     if visualise:
         plt.title("Pulse Detection")
@@ -276,7 +290,7 @@ def get_pulses(data, fs=100, z_score_threshold = 2.75, visualise=False, debug=Fa
         plt.show()
 
     # Removing the false peaks from peak_points dictionary if z_score_detection is True
-    if z_score_detection and len(false_indexes) > 0:
+    if len(peaks) > 1 and z_score_detection and len(false_indexes) > 0:
         for index in false_indexes:
             key = peaks[index]
             if key in peak_points:

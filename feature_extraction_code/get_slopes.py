@@ -24,7 +24,6 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
     ###########################################################
     # Initialising a dictionary and lists to store SLOPE data #
     ###########################################################
-    slope_features = {}
     upslope_lengths, downslope_lengths, upslopes, downslopes, onset_end_slopes, upslope_downslope_ratios, pulse_length_height_ratios, upslope_downslope_length_ratios, upslope_pulse_length_ratios, downslope_pulse_length_ratios = [], [], [], [], [], [], [], [], [], []
 
     # If the window_pulse_data is not empty
@@ -58,26 +57,38 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
                 # This can give an indication of how quickly the pulse is rising and how steep the rising edge is.
                 # Calculate the angle of the line between the onset and the peak against the horizontal axis
                 # The angle is in radians, so convert to degrees
-                upslope, _, _, _, _ = linregress([pre,peak],[data[pre],data[peak]])
-                upslope = (upslope * 100)
-                upslopes.append(upslope)
+                # Handle error "ValueError: Cannot calculate a linear regression if all x values are identical"
+                if pre == peak:
+                    upslope = 0
+                else:
+                    upslope, _, _, _, _ = linregress([pre,peak],[data[pre],data[peak]])
+                    upslope = (upslope * 100)
+                    upslopes.append(upslope)
 
                 #############
                 # DOWNSLOPE #
                 #############
                 # The downslope measures the rate of change of the pulse during the falling phase, from the peak to the end of the pulse. 
                 # This can give an indication of how quickly the pulse is falling and how steep the falling edge is.
-                downslope, _, _, _, _ = linregress([peak,post],[data[peak],data[-1]])
-                downslope = (downslope * 100)
-                downslopes.append(downslope)
+                # Handle error "ValueError: Cannot calculate a linear regression if all x values are identical"
+                if peak == post:
+                    downslope = 0
+                else:
+                    downslope, _, _, _, _ = linregress([peak,post],[data[peak],data[-1]])
+                    downslope = (downslope * 100)
+                    downslopes.append(downslope)
 
                 ###################
                 # ONSET_END_SLOPE #
                 ###################
                 # The onset-end slope measures the rate of change of the pulse over the entire pulse length, from the onset to the end of the pulse. 
                 # This can give an indication of the overall shape of the pulse and how steep it is.
-                onset_end_slope, _, _, _, _  = linregress([pre, post], [data[pre], data[-1]])
-                onset_end_slopes.append(onset_end_slope)
+                # Handle error "ValueError: Cannot calculate a linear regression if all x values are identical"
+                if pre == post:
+                    onset_end_slope = 0
+                else:
+                    onset_end_slope, _, _, _, _  = linregress([pre, post], [data[pre], data[-1]])
+                    onset_end_slopes.append(onset_end_slope)
 
                 ###########################
                 # UPSLOPE_DOWNSLOPE_RATIO #
@@ -181,6 +192,7 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
                     print("\n")
 
         # Calculating the median of the extracted features
+        slope_features = {}
         slope_features["median_upslope_length"] = np.nanmedian(upslope_lengths)
         slope_features["median_downslope_length"] = np.nanmedian(downslope_lengths)
         slope_features["median_upslope"] = np.nanmedian(upslopes)
@@ -193,4 +205,15 @@ def get_slopes(window_pulse_data, visualise=False, debug=False):
         slope_features["median_downslope_pulse_length_ratio"] = np.nanmedian(downslope_pulse_length_ratios)
         return slope_features 
     else:
-        return np.NaN
+        slope_features = {}
+        slope_features["median_upslope_length"] = np.NaN
+        slope_features["median_downslope_length"] = np.NaN
+        slope_features["median_upslope"] = np.NaN
+        slope_features["median_downslope"] = np.NaN
+        slope_features["median_onset_end_slope"] = np.NaN
+        slope_features["median_upslope_downslope_ratio"] = np.NaN
+        slope_features["median_pulse_length_height_ratio"] = np.NaN
+        slope_features["median_upslope_downslope_length_ratio"] = np.NaN
+        slope_features["median_upslope_pulse_length_ratio"] = np.NaN
+        slope_features["median_downslope_pulse_length_ratio"] = np.NaN
+        return slope_features 

@@ -2,7 +2,6 @@ from feature_extraction_code.get_aucs import get_aucs
 from feature_extraction_code.get_widths import get_widths
 from feature_extraction_code.get_peak_times import get_peak_times
 from feature_extraction_code.get_prominences import get_prominences
-from feature_extraction_code.get_second_der_ratio import get_second_der_ratio
 from feature_extraction_code.get_slopes import get_slopes
 from feature_extraction_code.get_beat_based_features import get_beat_features
 from feature_extraction_code.get_datum_line_features import get_datum_line_features
@@ -22,15 +21,4 @@ def get_features_v2(pulse_dictionary, fs, visualise=False, debug=False):
         # Aggregate the feature dictionaries into a single dictionary
         feature_dictionary = dict([item for sublist in [feature_dict.items() for feature_dict in [auc_features, time_features, beat_features, prominence_feature, slope_features, datum_features, width_features, sqi_features]] for item in sublist])
         
-        """feature_dictionary = {}
-        feature_dictionary.update(auc_features)
-        feature_dictionary.update(time_features)
-        feature_dictionary.update(beat_features)
-        feature_dictionary.update(prominence_feature)
-        #feature_dictionary.update(sec_der_ratio)
-        feature_dictionary.update(slope_features)
-        feature_dictionary.update(datum_features)
-        feature_dictionary.update(width_features)
-        feature_dictionary.update(sqi_features)
-        """
         return feature_dictionary
